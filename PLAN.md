@@ -49,15 +49,18 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 
 ---
 
-### Phase 2 — Plant Assignment & Counts
-**Goal:** Validate the core value proposition. No tests yet.
+### Phase 2 — Individual Plant Placement
+**Goal:** Place individual plants by drag-and-drop at specific positions within beds. No tests yet.
 
-- Hardcoded plant list (5–10 plants with default spacing)
-- Assign a plant to a selected shape via dropdown
-- Calculate and display plant count per shape
-- Running total plant list shown on screen
+- Left sidebar palette listing all plants as draggable chips
+- Drag a plant chip onto a shape to place a colored marker dot at the drop position
+- Markers only land inside a shape (drops outside shapes are ignored)
+- Click a marker in Select mode to delete it
+- Shape label shows placed count ("N plants") or area if empty
+- Right panel shows placed count for selected shape
+- Running plant summary with color swatches
 
-**Done when:** Assign "Rose (0.5m spacing)" to a shape and see "24 plants needed"
+**Done when:** Drag "Rose" onto a bed → R dot appears at drop position; summary updates
 
 ---
 
@@ -136,7 +139,7 @@ _Deferred — revisit after Phase 5 is complete._
 | Phase | Status |
 |---|---|
 | 1 — Canvas & Shapes | ✅ Complete |
-| 2 — Plant Assignment | ✅ Complete |
+| 2 — Plant Placement  | ✅ Complete |
 | 3 — Plant Database | ⬜ Not started |
 | 4 — Save / Load / Export | ⬜ Not started |
 | 5 — Polish & UX | ⬜ Not started |
@@ -150,4 +153,4 @@ _Update this section as phases complete or decisions change._
 
 - **2026-03-11** — Initial plan created. Phases defined, assumptions validated.
 - **2026-03-11** — Phase 1 complete. Single `index.html`, SVG canvas with grid, draw rect/circle/ellipse, select/delete, info panel with real-world dimensions and area.
-- **2026-03-11** — Phase 2 complete. 10-plant hardcoded database, dropdown assignment on selected shape, hexagonal packing count, canvas label updates, running plant summary panel.
+- **2026-03-11** — Phase 2 revised and re-implemented. Replaced dropdown/hex-packing system with individual plant placement: left sidebar palette, drag-and-drop markers (colored dot + initial) onto shapes, click-to-delete markers, updated summary with color swatches.

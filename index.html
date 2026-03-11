@@ -75,6 +75,60 @@
       overflow: hidden;
     }
 
+    /* ── Left panel ── */
+    #left-panel {
+      width: 160px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #left-panel h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #999;
+      padding: 14px 14px 8px;
+      flex-shrink: 0;
+    }
+
+    #plant-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .plant-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fafafa;
+      cursor: grab;
+      font-size: 0.82rem;
+      user-select: none;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .plant-chip:hover { background: #f0f7f0; border-color: #88c988; }
+    .plant-chip.dragging { opacity: 0.4; cursor: grabbing; }
+
+    .chip-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    /* ── Canvas ── */
     #canvas-container {
       flex: 1;
       overflow: auto;
@@ -139,28 +193,10 @@
       font-size: 1.1rem;
       font-weight: 700;
       color: #2e6b18;
-      margin-bottom: 12px;
-    }
-
-    /* ── Plant assignment ── */
-    .plant-label {
-      font-size: 0.78rem;
-      color: #777;
-      margin-bottom: 4px;
-    }
-
-    select.plant-select {
-      width: 100%;
-      padding: 5px 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 0.82rem;
-      background: #fafafa;
-      cursor: pointer;
       margin-bottom: 8px;
     }
-    select.plant-select:focus { outline: none; border-color: #43a047; }
 
+    /* ── Placed plant count ── */
     .plant-count-row {
       display: flex;
       justify-content: space-between;
@@ -181,11 +217,24 @@
     .summary-row {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
       margin-bottom: 5px;
       font-size: 0.83rem;
     }
-    .summary-name { color: #444; }
+    .summary-name {
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .summary-swatch {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
     .summary-count {
       font-weight: 600;
       color: #333;
@@ -240,10 +289,17 @@
 </div>
 
 <div id="workspace">
+
+  <div id="left-panel">
+    <h2>Plants</h2>
+    <div id="plant-list"></div>
+  </div>
+
   <div id="canvas-container">
     <svg id="canvas" width="900" height="600" xmlns="http://www.w3.org/2000/svg">
       <g id="grid-layer"></g>
       <g id="shapes-layer"></g>
+      <g id="markers-layer"></g>
       <g id="label-layer"></g>
       <g id="overlay-layer"></g>
     </svg>
@@ -251,7 +307,7 @@
 
   <div id="right-panel">
 
-    <!-- Shape info + plant assignment -->
+    <!-- Shape info -->
     <div class="panel-section" id="shape-section">
       <h2>Shape Info</h2>
       <div id="info-content">
@@ -267,7 +323,7 @@
     <div class="panel-section" id="summary-section">
       <h2>Plant Summary</h2>
       <div id="summary-content">
-        <div class="info-empty">No plants assigned yet.</div>
+        <div class="info-empty">No plants placed yet.</div>
       </div>
     </div>
 
@@ -283,7 +339,6 @@
 
 <script>
   // ── Plant database ─────────────────────────────────────────────────────────
-  // spacing in metres; used for hexagonal packing density
   const PLANTS = [
     { name: 'Rose',        spacing: 0.50, color: '#e91e63' },
     { name: 'Lavender',    spacing: 0.30, color: '#7e57c2' },
@@ -294,14 +349,14 @@
     { name: 'Sunflower',   spacing: 0.50, color: '#ffca28' },
     { name: 'Marigold',    spacing: 0.25, color: '#ffa726' },
     { name: 'Hosta',       spacing: 0.45, color: '#66bb6a' },
-    { name: 'Daisy',       spacing: 0.30, color: '#ffffff' },
+    { name: 'Daisy',       spacing: 0.30, color: '#e0e0e0' },
   ];
 
   // ── Constants ──────────────────────────────────────────────────────────────
+  const NS       = 'http://www.w3.org/2000/svg';
   const SCALE    = 100;   // pixels per metre
   const CANVAS_W = 900;
   const CANVAS_H = 600;
-  const HEX_PACK = Math.sqrt(3) / 2;  // ≈ 0.866 — hexagonal packing factor
 
   // Colour palette for bed shapes (cycles)
   const FILL_COLORS   = ['rgba(76,175,80,0.22)', 'rgba(255,193,7,0.22)',
@@ -312,14 +367,16 @@
   let colorIndex = 0;
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
-  const svgEl        = document.getElementById('canvas');
-  const shapesLayer  = document.getElementById('shapes-layer');
-  const labelLayer   = document.getElementById('label-layer');
-  const overlayLayer = document.getElementById('overlay-layer');
-  const infoContent  = document.getElementById('info-content');
+  const svgEl          = document.getElementById('canvas');
+  const shapesLayer    = document.getElementById('shapes-layer');
+  const markersLayer   = document.getElementById('markers-layer');
+  const labelLayer     = document.getElementById('label-layer');
+  const overlayLayer   = document.getElementById('overlay-layer');
+  const infoContent    = document.getElementById('info-content');
   const summaryContent = document.getElementById('summary-content');
-  const deleteBtn    = document.getElementById('delete-btn');
-  const statusMsg    = document.getElementById('status-msg');
+  const deleteBtn      = document.getElementById('delete-btn');
+  const statusMsg      = document.getElementById('status-msg');
+  const plantListEl    = document.getElementById('plant-list');
 
   // ── State ──────────────────────────────────────────────────────────────────
   let currentTool  = 'select';
@@ -329,11 +386,11 @@
   let selectedData = null;   // currently selected shapeData
   let shapes       = [];     // all shapeData objects
 
-  // shapeData = { type, el, labelEl, fill, stroke, plant, ...dims }
+  // shapeData = { type, el, labelEl, fill, stroke, plantMarkers, ...dims }
   //   rect:    x, y, w, h   (px)
   //   circle:  cx, cy, r    (px)
   //   ellipse: cx, cy, rx, ry (px)
-  //   plant:   PLANTS[i] or null
+  //   plantMarkers: [{ plant, x, y, el }, ...]
 
   // ── Geometry utilities ─────────────────────────────────────────────────────
   function pxToM(px)    { return px / SCALE; }
@@ -344,14 +401,6 @@
     if (d.type === 'circle')  return Math.PI * pxToM(d.r) ** 2;
     if (d.type === 'ellipse') return Math.PI * pxToM(d.rx) * pxToM(d.ry);
     return 0;
-  }
-
-  // Hexagonal packing: count = floor(area / (spacing² × √3/2))
-  function calcCount(d) {
-    if (!d.plant) return 0;
-    const area = calcArea(d);
-    const s = d.plant.spacing;
-    return Math.floor(area / (s * s * HEX_PACK));
   }
 
   function shapeCentroid(d) {
@@ -365,14 +414,36 @@
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
+  // ── Point-in-shape hit detection ───────────────────────────────────────────
+  function pointInRect(d, x, y) {
+    return x >= d.x && x <= d.x + d.w && y >= d.y && y <= d.y + d.h;
+  }
+
+  function pointInCircle(d, x, y) {
+    const dx = x - d.cx, dy = y - d.cy;
+    return dx * dx + dy * dy <= d.r * d.r;
+  }
+
+  function pointInEllipse(d, x, y) {
+    const dx = (x - d.cx) / d.rx;
+    const dy = (y - d.cy) / d.ry;
+    return dx * dx + dy * dy <= 1;
+  }
+
+  function pointInShape(d, x, y) {
+    if (d.type === 'rect')    return pointInRect(d, x, y);
+    if (d.type === 'circle')  return pointInCircle(d, x, y);
+    if (d.type === 'ellipse') return pointInEllipse(d, x, y);
+    return false;
+  }
+
   // ── Grid ───────────────────────────────────────────────────────────────────
   function drawGrid() {
     const g = document.getElementById('grid-layer');
-    const ns = 'http://www.w3.org/2000/svg';
 
     for (let x = 0; x <= CANVAS_W; x += 50) {
       const major = x % SCALE === 0;
-      const ln = document.createElementNS(ns, 'line');
+      const ln = document.createElementNS(NS, 'line');
       ln.setAttribute('x1', x); ln.setAttribute('y1', 0);
       ln.setAttribute('x2', x); ln.setAttribute('y2', CANVAS_H);
       ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
@@ -381,7 +452,7 @@
     }
     for (let y = 0; y <= CANVAS_H; y += 50) {
       const major = y % SCALE === 0;
-      const ln = document.createElementNS(ns, 'line');
+      const ln = document.createElementNS(NS, 'line');
       ln.setAttribute('x1', 0); ln.setAttribute('y1', y);
       ln.setAttribute('x2', CANVAS_W); ln.setAttribute('y2', y);
       ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
@@ -389,14 +460,14 @@
       g.appendChild(ln);
     }
     for (let m = 1; m * SCALE <= CANVAS_W; m++) {
-      const txt = document.createElementNS(ns, 'text');
+      const txt = document.createElementNS(NS, 'text');
       txt.setAttribute('x', m * SCALE); txt.setAttribute('y', 11);
       txt.setAttribute('text-anchor', 'middle');
       txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
       txt.textContent = m + 'm'; g.appendChild(txt);
     }
     for (let m = 1; m * SCALE <= CANVAS_H; m++) {
-      const txt = document.createElementNS(ns, 'text');
+      const txt = document.createElementNS(NS, 'text');
       txt.setAttribute('x', 4); txt.setAttribute('y', m * SCALE + 4);
       txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
       txt.textContent = m + 'm'; g.appendChild(txt);
@@ -408,11 +479,10 @@
 
   function ensureDimLabel() {
     if (dimLabel) return;
-    const ns = 'http://www.w3.org/2000/svg';
-    const g  = document.createElementNS(ns, 'g');
-    const bg = document.createElementNS(ns, 'rect');
+    const g  = document.createElementNS(NS, 'g');
+    const bg = document.createElementNS(NS, 'rect');
     bg.setAttribute('fill', 'rgba(0,0,0,0.65)'); bg.setAttribute('rx', '3');
-    const tx = document.createElementNS(ns, 'text');
+    const tx = document.createElementNS(NS, 'text');
     tx.setAttribute('fill', '#fff'); tx.setAttribute('font-size', '11');
     tx.setAttribute('font-family', 'system-ui,sans-serif');
     tx.setAttribute('text-anchor', 'middle');
@@ -436,18 +506,17 @@
   function hideDimLabel() { if (dimLabel) dimLabel.g.style.display = 'none'; }
 
   // ── Permanent canvas label on each shape ───────────────────────────────────
-  // Shows: line1 = plant name (or area), line2 = count (if plant assigned)
+  // Shows marker count ("N plants") or area if no markers placed yet
   function makeLabelEl(d) {
-    const ns = 'http://www.w3.org/2000/svg';
-    const g  = document.createElementNS(ns, 'g');
+    const g  = document.createElementNS(NS, 'g');
     g.style.pointerEvents = 'none';
 
-    const bg = document.createElementNS(ns, 'rect');
+    const bg = document.createElementNS(NS, 'rect');
     bg.setAttribute('fill', 'rgba(255,255,255,0.82)');
     bg.setAttribute('rx', '3');
 
-    const tx1 = document.createElementNS(ns, 'text'); // area or plant name
-    const tx2 = document.createElementNS(ns, 'text'); // count (optional)
+    const tx1 = document.createElementNS(NS, 'text');
+    const tx2 = document.createElementNS(NS, 'text');
 
     for (const tx of [tx1, tx2]) {
       tx.setAttribute('font-size', '10');
@@ -464,35 +533,24 @@
 
   function updateLabelEl(d) {
     if (!d.labelEl) return;
-    const { g, bg, tx1, tx2 } = d.labelEl;
+    const { bg, tx1, tx2 } = d.labelEl;
     const { x: cx, y: cy } = shapeCentroid(d);
 
-    let line1, line2;
-    if (d.plant) {
-      const count = calcCount(d);
-      line1 = d.plant.name;
-      line2  = count + ' plants';
-    } else {
-      line1 = fmt(calcArea(d)) + ' m²';
-      line2  = '';
-    }
+    const count = d.plantMarkers.length;
+    const line1 = count > 0
+      ? count + (count === 1 ? ' plant' : ' plants')
+      : fmt(calcArea(d)) + ' m²';
 
-    const twoLines = line2 !== '';
-    const pad = 4;
-    const lineH = 13;
-    const totalH = twoLines ? lineH * 2 + pad * 2 : lineH + pad * 2;
-    const maxLen = Math.max(line1.length, line2.length);
-    const totalW = maxLen * 6 + pad * 2;
+    const pad = 4, lineH = 13;
+    const totalH = lineH + pad * 2;
+    const totalW = line1.length * 6 + pad * 2;
 
     tx1.textContent = line1;
     tx1.setAttribute('x', cx);
-    tx1.setAttribute('y', twoLines ? cy - lineH / 2 : cy);
-    tx1.setAttribute('font-weight', d.plant ? '600' : 'normal');
-
-    tx2.textContent = line2;
-    tx2.setAttribute('x', cx);
-    tx2.setAttribute('y', cy + lineH / 2);
-    tx2.style.display = twoLines ? '' : 'none';
+    tx1.setAttribute('y', cy);
+    tx1.setAttribute('font-weight', count > 0 ? '600' : 'normal');
+    tx2.textContent = '';
+    tx2.style.display = 'none';
 
     bg.setAttribute('width',  totalW);
     bg.setAttribute('height', totalH);
@@ -504,16 +562,44 @@
     if (d.labelEl) { d.labelEl.g.remove(); d.labelEl = null; }
   }
 
-  // ── Info panel ────────────────────────────────────────────────────────────
-  function plantOptionsHTML(selectedPlant) {
-    const none = `<option value="-1"${!selectedPlant ? ' selected' : ''}>— None —</option>`;
-    const opts = PLANTS.map((p, i) => {
-      const sel = selectedPlant && selectedPlant.name === p.name ? ' selected' : '';
-      return `<option value="${i}"${sel}>${p.name} (${p.spacing}m spacing)</option>`;
-    }).join('');
-    return none + opts;
+  // ── Marker creation ────────────────────────────────────────────────────────
+  function createMarkerEl(plant, x, y) {
+    const g = document.createElementNS(NS, 'g');
+    g.dataset.marker = '1';
+    g.style.cursor = 'pointer';
+
+    // Use grey stroke for light-colored plants so the dot is visible
+    const isDark = plant.color !== '#e0e0e0' && plant.color !== '#ffca28';
+    const textFill   = isDark ? '#fff' : '#555';
+    const strokeColor = isDark ? '#fff' : '#aaa';
+
+    const circle = document.createElementNS(NS, 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', 8);
+    circle.setAttribute('fill', plant.color);
+    circle.setAttribute('stroke', strokeColor);
+    circle.setAttribute('stroke-width', '1.5');
+
+    const text = document.createElementNS(NS, 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('font-size', '7');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('font-family', 'system-ui,sans-serif');
+    text.setAttribute('fill', textFill);
+    text.style.pointerEvents = 'none';
+    text.textContent = plant.name.charAt(0).toUpperCase();
+
+    g.appendChild(circle);
+    g.appendChild(text);
+    markersLayer.appendChild(g);
+    return g;
   }
 
+  // ── Info panel ─────────────────────────────────────────────────────────────
   function updateInfoPanel(d) {
     if (!d) {
       infoContent.innerHTML = '<div class="info-empty">No shape selected.</div>';
@@ -560,54 +646,45 @@
         </div>`;
     }
 
-    const countHTML = d.plant ? `
-      <div class="plant-count-row">
-        <span class="plant-count-label">Plants needed</span>
-        <span class="plant-count-value">${calcCount(d)}</span>
-      </div>` : '';
+    const count = d.plantMarkers.length;
+    const countHTML = count > 0
+      ? `<div class="plant-count-row">
+           <span class="plant-count-label">Plants placed</span>
+           <span class="plant-count-value">${count}</span>
+         </div>`
+      : `<div class="info-hint" style="margin-top:6px;">Drag a plant from the left panel onto this bed.</div>`;
 
     infoContent.innerHTML = `
       ${dimRows}
       <hr class="info-divider">
       <div class="info-area">Area: ${fmt(area)} m²</div>
-      <div class="plant-label">Assign plant</div>
-      <select class="plant-select" id="plant-select">
-        ${plantOptionsHTML(d.plant)}
-      </select>
       ${countHTML}
     `;
   }
 
-  // Delegate change events from the dynamically rendered dropdown
-  infoContent.addEventListener('change', e => {
-    if (e.target.id !== 'plant-select') return;
-    if (!selectedData) return;
-    const idx = parseInt(e.target.value);
-    selectedData.plant = idx >= 0 ? PLANTS[idx] : null;
-    updateLabelEl(selectedData);
-    updateInfoPanel(selectedData);   // re-render to show/hide count
-    updateSummary();
-  });
-
-  // ── Plant summary ─────────────────────────────────────────────────────────
+  // ── Plant summary ──────────────────────────────────────────────────────────
   function updateSummary() {
-    const totals = {}; // plant name → count
+    const totals = {}; // plant name → { count, color }
     for (const d of shapes) {
-      if (!d.plant) continue;
-      const n = d.plant.name;
-      totals[n] = (totals[n] || 0) + calcCount(d);
+      for (const m of d.plantMarkers) {
+        const n = m.plant.name;
+        if (!totals[n]) totals[n] = { count: 0, color: m.plant.color };
+        totals[n].count++;
+      }
     }
     const entries = Object.entries(totals);
     if (entries.length === 0) {
-      summaryContent.innerHTML = '<div class="info-empty">No plants assigned yet.</div>';
+      summaryContent.innerHTML = '<div class="info-empty">No plants placed yet.</div>';
       return;
     }
     let grandTotal = 0;
     let html = '';
-    for (const [name, count] of entries) {
+    for (const [name, { count, color }] of entries) {
       grandTotal += count;
       html += `<div class="summary-row">
-        <span class="summary-name">${name}</span>
+        <span class="summary-name">
+          <span class="summary-swatch" style="background:${color}"></span>${name}
+        </span>
         <span class="summary-count">${count}</span>
       </div>`;
     }
@@ -619,7 +696,7 @@
     summaryContent.innerHTML = html;
   }
 
-  // ── Selection ─────────────────────────────────────────────────────────────
+  // ── Selection ──────────────────────────────────────────────────────────────
   const SEL_STROKE = '#1565c0';
   const SEL_SW     = '3';
   const DEF_SW     = '1.5';
@@ -641,9 +718,10 @@
     return shapes.find(s => s.el === el) || null;
   }
 
-  // ── Deletion ──────────────────────────────────────────────────────────────
+  // ── Deletion ───────────────────────────────────────────────────────────────
   function deleteSelected() {
     if (!selectedData) return;
+    for (const m of selectedData.plantMarkers) m.el.remove();
     selectedData.el.remove();
     removeLabelEl(selectedData);
     shapes = shapes.filter(s => s !== selectedData);
@@ -654,7 +732,7 @@
 
   deleteBtn.addEventListener('click', deleteSelected);
 
-  // ── Tool switching ────────────────────────────────────────────────────────
+  // ── Tool switching ─────────────────────────────────────────────────────────
   function setTool(name) {
     currentTool = name;
     document.querySelectorAll('.tool-btn').forEach(b => {
@@ -668,9 +746,9 @@
     b.addEventListener('click', () => setTool(b.dataset.tool));
   });
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelected(); return; }
     if (e.key === 's' || e.key === 'S') setTool('select');
     if (e.key === 'r' || e.key === 'R') setTool('rect');
@@ -678,9 +756,77 @@
     if (e.key === 'e' || e.key === 'E') setTool('ellipse');
   });
 
-  // ── Drawing ───────────────────────────────────────────────────────────────
-  const NS = 'http://www.w3.org/2000/svg';
+  // ── Plant palette (left panel) ─────────────────────────────────────────────
+  function renderPlantList() {
+    PLANTS.forEach((plant, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'plant-chip';
+      chip.draggable = true;
+      chip.innerHTML = `
+        <span class="chip-swatch" style="background:${plant.color}"></span>
+        <span>${plant.name}</span>
+      `;
+      chip.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('plantIndex', i);
+        e.dataTransfer.effectAllowed = 'copy';
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+      plantListEl.appendChild(chip);
+    });
+  }
 
+  // ── Drag-and-drop onto SVG ─────────────────────────────────────────────────
+  svgEl.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('plantindex')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  svgEl.addEventListener('drop', e => {
+    e.preventDefault();
+    const idx = parseInt(e.dataTransfer.getData('plantIndex'));
+    if (isNaN(idx) || idx < 0 || idx >= PLANTS.length) return;
+
+    const { x, y } = svgCoords(e);
+
+    // Find topmost shape containing the drop point (reverse = top z-order first)
+    let targetShape = null;
+    for (let i = shapes.length - 1; i >= 0; i--) {
+      if (pointInShape(shapes[i], x, y)) { targetShape = shapes[i]; break; }
+    }
+    if (!targetShape) return;
+
+    const plant = PLANTS[idx];
+    const markerEl = createMarkerEl(plant, x, y);
+    targetShape.plantMarkers.push({ plant, x, y, el: markerEl });
+
+    updateLabelEl(targetShape);
+    if (selectedData === targetShape) updateInfoPanel(targetShape);
+    updateSummary();
+  });
+
+  // ── Marker click-to-delete ─────────────────────────────────────────────────
+  markersLayer.addEventListener('click', e => {
+    if (currentTool !== 'select') return;
+    const markerGroup = e.target.closest('[data-marker]');
+    if (!markerGroup) return;
+    e.stopPropagation();
+
+    for (const d of shapes) {
+      const idx = d.plantMarkers.findIndex(m => m.el === markerGroup);
+      if (idx !== -1) {
+        markerGroup.remove();
+        d.plantMarkers.splice(idx, 1);
+        updateLabelEl(d);
+        if (selectedData === d) updateInfoPanel(d);
+        updateSummary();
+        return;
+      }
+    }
+  });
+
+  // ── Drawing ────────────────────────────────────────────────────────────────
   function nextColor() {
     const i = colorIndex % FILL_COLORS.length;
     colorIndex++;
@@ -688,6 +834,8 @@
   }
 
   svgEl.addEventListener('mousedown', e => {
+    if (e.target.closest('[data-marker]')) return;  // don't interfere with marker clicks
+
     if (currentTool === 'select') {
       const hit = e.target.closest('[data-shape]');
       selectShape(hit ? findShapeByEl(hit) : null);
@@ -764,7 +912,7 @@
       const h = parseFloat(activeEl.getAttribute('height')) || 0;
       if (w < 4 || h < 4) { activeEl.remove(); activeEl = null; return; }
       d = {
-        type: 'rect', el: activeEl, plant: null,
+        type: 'rect', el: activeEl, plantMarkers: [],
         x: parseFloat(activeEl.getAttribute('x')),
         y: parseFloat(activeEl.getAttribute('y')),
         w, h,
@@ -775,7 +923,7 @@
       const r = parseFloat(activeEl.getAttribute('r')) || 0;
       if (r < 4) { activeEl.remove(); activeEl = null; return; }
       d = {
-        type: 'circle', el: activeEl, plant: null,
+        type: 'circle', el: activeEl, plantMarkers: [],
         cx: parseFloat(activeEl.getAttribute('cx')),
         cy: parseFloat(activeEl.getAttribute('cy')),
         r,
@@ -787,7 +935,7 @@
       const ry = parseFloat(activeEl.getAttribute('ry')) || 0;
       if (rx < 4 || ry < 4) { activeEl.remove(); activeEl = null; return; }
       d = {
-        type: 'ellipse', el: activeEl, plant: null,
+        type: 'ellipse', el: activeEl, plantMarkers: [],
         cx: parseFloat(activeEl.getAttribute('cx')),
         cy: parseFloat(activeEl.getAttribute('cy')),
         rx, ry,
@@ -806,8 +954,9 @@
     selectShape(d);
   });
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────────────────────────
   drawGrid();
+  renderPlantList();
   setTool('select');
 </script>
 </body>
