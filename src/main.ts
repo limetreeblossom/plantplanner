@@ -1,12 +1,13 @@
 import { PLANTS } from './plants';
 import {
   SCALE, CANVAS_W, CANVAS_H,
-  pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale,
+  pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale, polygonSelfIntersects,
 } from './geometry';
-import type { ShapeData, LabelEl, PlantMarker, Plant } from './types';
+import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './types';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const NS = 'http://www.w3.org/2000/svg';
+const SNAP_RADIUS = 12; // px — distance within which cursor snaps to first polygon vertex
 
 const FILL_COLORS: string[] = [
   'rgba(76,175,80,0.22)', 'rgba(255,193,7,0.22)',
@@ -39,7 +40,7 @@ const calibCancelBtn = document.getElementById('calib-cancel') as HTMLButtonElem
 const scaleInfo      = document.getElementById('scale-info') as HTMLSpanElement;
 
 // ── State ──────────────────────────────────────────────────────────────────
-type Tool = 'select' | 'rect' | 'circle' | 'ellipse' | 'calibrate';
+type Tool = 'select' | 'rect' | 'circle' | 'ellipse' | 'polygon' | 'calibrate';
 let currentTool: Tool = 'select';
 let drawing   = false;
 let startX    = 0;
@@ -47,6 +48,12 @@ let startY    = 0;
 let activeEl: SVGElement | null = null;
 let selectedData: ShapeData | null = null;
 let shapes: ShapeData[] = [];
+
+// Polygon drawing state
+let polyPts:        Array<{ x: number; y: number }> = [];
+let polyVertexDots: SVGCircleElement[]               = [];
+let polySegments:   SVGLineElement[]                 = [];
+let polyPreviewLine: SVGLineElement | null           = null;
 
 // Phase 3 — background image & scale calibration
 let sessionScale = SCALE;
@@ -281,6 +288,14 @@ function updateInfoPanel(d: ShapeData | null): void {
       <div class="info-row">
         <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry, sessionScale) * 2)} m</span>
       </div>`;
+  } else if (d.type === 'polygon') {
+    dimRows = `
+      <div class="info-row">
+        <span class="info-label">Type</span><span class="info-value">Polygon</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Vertices</span><span class="info-value">${d.points.length}</span>
+      </div>`;
   }
 
   const count = d.plantMarkers.length;
@@ -375,6 +390,92 @@ ringsToggle.addEventListener('change', () => {
   document.body.classList.toggle('hide-rings', !ringsToggle.checked);
 });
 
+// ── Polygon drawing helpers ────────────────────────────────────────────────
+function clearPolygon(): void {
+  for (const d of polyVertexDots) overlayLayer.removeChild(d);
+  polyVertexDots = [];
+  for (const s of polySegments) overlayLayer.removeChild(s);
+  polySegments = [];
+  if (polyPreviewLine) { overlayLayer.removeChild(polyPreviewLine); polyPreviewLine = null; }
+  polyPts = [];
+  hideDimLabel();
+}
+
+function addVertexDot(pt: { x: number; y: number }, isFirst: boolean): void {
+  const c = document.createElementNS(NS, 'circle') as SVGCircleElement;
+  c.setAttribute('cx', String(pt.x)); c.setAttribute('cy', String(pt.y));
+  c.setAttribute('r', '5');
+  c.setAttribute('fill', isFirst ? '#fff' : '#1565c0');
+  c.setAttribute('stroke', '#1565c0');
+  c.setAttribute('stroke-width', '1.5');
+  c.style.pointerEvents = 'none';
+  overlayLayer.appendChild(c);
+  polyVertexDots.push(c);
+}
+
+function drawPolySegment(p1: { x: number; y: number }, p2: { x: number; y: number }): void {
+  const ln = document.createElementNS(NS, 'line') as SVGLineElement;
+  ln.setAttribute('x1', String(p1.x)); ln.setAttribute('y1', String(p1.y));
+  ln.setAttribute('x2', String(p2.x)); ln.setAttribute('y2', String(p2.y));
+  ln.setAttribute('stroke', '#1565c0');
+  ln.setAttribute('stroke-width', '1.5');
+  ln.setAttribute('stroke-dasharray', '5,3');
+  ln.style.pointerEvents = 'none';
+  overlayLayer.appendChild(ln);
+  polySegments.push(ln);
+}
+
+function updatePolyPreview(pt: { x: number; y: number }): void {
+  if (!polyPreviewLine) {
+    polyPreviewLine = document.createElementNS(NS, 'line') as SVGLineElement;
+    polyPreviewLine.setAttribute('stroke', '#1565c0');
+    polyPreviewLine.setAttribute('stroke-width', '1');
+    polyPreviewLine.setAttribute('stroke-dasharray', '4,3');
+    polyPreviewLine.setAttribute('opacity', '0.5');
+    polyPreviewLine.style.pointerEvents = 'none';
+    overlayLayer.appendChild(polyPreviewLine);
+  }
+  const last = polyPts[polyPts.length - 1];
+  polyPreviewLine.setAttribute('x1', String(last.x)); polyPreviewLine.setAttribute('y1', String(last.y));
+  polyPreviewLine.setAttribute('x2', String(pt.x));   polyPreviewLine.setAttribute('y2', String(pt.y));
+}
+
+function finalizePolygon(): void {
+  if (polyPts.length < 3) return;
+  if (polygonSelfIntersects(polyPts)) {
+    statusMsg.textContent = 'Shape self-intersects — adjust points before closing.';
+    return;
+  }
+  const { fill, stroke } = nextColor();
+  const el = document.createElementNS(NS, 'polygon') as SVGPolygonElement;
+  el.setAttribute('points', polyPts.map(p => `${p.x},${p.y}`).join(' '));
+  el.setAttribute('fill', fill);
+  el.setAttribute('stroke', stroke);
+  el.setAttribute('stroke-width', DEF_SW);
+  (el as SVGElement & { dataset: DOMStringMap }).dataset['shape'] = '1';
+  el.style.cursor = 'pointer';
+  (el as SVGElement & Record<string, string>)['_fill']   = fill;
+  (el as SVGElement & Record<string, string>)['_stroke'] = stroke;
+  shapesLayer.appendChild(el);
+
+  const d: PolygonShape = {
+    type: 'polygon',
+    el: el as SVGGeometryElement,
+    labelEl: null,
+    plantMarkers: [],
+    points: [...polyPts],
+    fill,
+    stroke,
+  };
+  d.labelEl = makeLabelEl();
+  updateLabelEl(d);
+  shapes.push(d);
+
+  clearPolygon();
+  setTool('select');
+  selectShape(d);
+}
+
 // ── Scale calibration ──────────────────────────────────────────────────────
 function clearCalibration(): void {
   calibPts = [];
@@ -428,6 +529,7 @@ bgFileInput.addEventListener('change', () => {
 // ── Tool switching ─────────────────────────────────────────────────────────
 function setTool(name: Tool): void {
   if (name !== 'calibrate') clearCalibration();
+  if (name !== 'polygon')   clearPolygon();
   currentTool = name;
   document.querySelectorAll('.tool-btn').forEach(b => {
     (b as HTMLElement).classList.toggle('active', (b as HTMLElement).dataset['tool'] === name);
@@ -448,6 +550,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'r' || e.key === 'R') setTool('rect');
   if (e.key === 'c' || e.key === 'C') setTool('circle');
   if (e.key === 'e' || e.key === 'E') setTool('ellipse');
+  if (e.key === 'p' || e.key === 'P') setTool('polygon');
+  if (e.key === 'Escape' && currentTool === 'polygon') { clearPolygon(); setTool('select'); }
 });
 
 // ── Plant palette (left panel) ─────────────────────────────────────────────
@@ -569,6 +673,28 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     return;
   }
 
+  // Polygon mode: click to place vertices; click first vertex to close
+  if (currentTool === 'polygon') {
+    const pt = svgCoords(e);
+    if (polyPts.length === 0) {
+      polyPts.push(pt);
+      addVertexDot(pt, true);
+      statusMsg.textContent = 'Click to add points. Click first point to close (≥ 3 points).';
+    } else {
+      const first = polyPts[0];
+      const dist  = Math.hypot(pt.x - first.x, pt.y - first.y);
+      if (dist <= SNAP_RADIUS && polyPts.length >= 3) {
+        finalizePolygon();
+      } else {
+        polyPts.push(pt);
+        addVertexDot(pt, false);
+        drawPolySegment(polyPts[polyPts.length - 2], pt);
+        statusMsg.textContent = `${polyPts.length} points placed. Click first point to close.`;
+      }
+    }
+    return;
+  }
+
   // Select mode: move bg image if clicking it, else select a shape
   if (currentTool === 'select') {
     if (e.target === bgImageEl) {
@@ -617,6 +743,21 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
 });
 
 svgEl.addEventListener('mousemove', (e: MouseEvent) => {
+  if (currentTool === 'polygon' && polyPts.length > 0) {
+    const pt = svgCoords(e);
+    updatePolyPreview(pt);
+    // Snap indicator: enlarge first vertex dot when cursor can close the polygon
+    const first    = polyPts[0];
+    const dist     = Math.hypot(pt.x - first.x, pt.y - first.y);
+    const canClose = polyPts.length >= 3;
+    polyVertexDots[0].setAttribute('r', (dist <= SNAP_RADIUS && canClose) ? '8' : '5');
+    polyVertexDots[0].setAttribute('stroke-width', (dist <= SNAP_RADIUS && canClose) ? '2.5' : '1.5');
+    // Show live segment length
+    const last   = polyPts[polyPts.length - 1];
+    const segLen = Math.hypot(pt.x - last.x, pt.y - last.y);
+    if (segLen > 1) updateDimLabel(pt.x, pt.y - 16, fmt(pxToM(segLen, sessionScale)) + ' m');
+    return;
+  }
   if (movingBg && bgImageEl) {
     const pt = svgCoords(e);
     bgX = moveBgOrigX + (pt.x - moveBgStartX);

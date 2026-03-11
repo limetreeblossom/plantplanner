@@ -12,10 +12,80 @@ export function fmt(m: number, dp = 2): string {
   return m.toFixed(dp);
 }
 
+export function calcPolygonArea(
+  points: Array<{ x: number; y: number }>,
+  scale = SCALE
+): number {
+  const n = points.length;
+  if (n < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    sum += points[i].x * points[j].y - points[j].x * points[i].y;
+  }
+  return Math.abs(sum) / 2 / (scale * scale);
+}
+
+export function polygonCentroid(
+  points: Array<{ x: number; y: number }>
+): { x: number; y: number } {
+  if (points.length === 0) return { x: 0, y: 0 };
+  return {
+    x: points.reduce((s, p) => s + p.x, 0) / points.length,
+    y: points.reduce((s, p) => s + p.y, 0) / points.length,
+  };
+}
+
+export function pointInPolygon(
+  points: Array<{ x: number; y: number }>,
+  x: number,
+  y: number
+): boolean {
+  const n = points.length;
+  let inside = false;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const { x: xi, y: yi } = points[i];
+    const { x: xj, y: yj } = points[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+
+export function segmentsIntersect(
+  p1: { x: number; y: number }, p2: { x: number; y: number },
+  p3: { x: number; y: number }, p4: { x: number; y: number }
+): boolean {
+  const d1x = p2.x - p1.x, d1y = p2.y - p1.y;
+  const d2x = p4.x - p3.x, d2y = p4.y - p3.y;
+  const cross = d1x * d2y - d1y * d2x;
+  if (Math.abs(cross) < 1e-10) return false; // parallel / collinear
+  const t = ((p3.x - p1.x) * d2y - (p3.y - p1.y) * d2x) / cross;
+  const u = ((p3.x - p1.x) * d1y - (p3.y - p1.y) * d1x) / cross;
+  return t > 0 && t < 1 && u > 0 && u < 1;
+}
+
+export function polygonSelfIntersects(
+  points: Array<{ x: number; y: number }>
+): boolean {
+  const n = points.length;
+  if (n < 4) return false;
+  for (let i = 0; i < n; i++) {
+    const i2 = (i + 1) % n;
+    for (let j = i + 2; j < n; j++) {
+      const j2 = (j + 1) % n;
+      if (j2 === i) continue; // adjacent segments share an endpoint — skip
+      if (segmentsIntersect(points[i], points[i2], points[j], points[j2])) return true;
+    }
+  }
+  return false;
+}
+
 export function calcArea(d: ShapeData, scale = SCALE): number {
   if (d.type === 'rect')    return pxToM(d.w, scale) * pxToM(d.h, scale);
   if (d.type === 'circle')  return Math.PI * pxToM(d.r, scale) ** 2;
   if (d.type === 'ellipse') return Math.PI * pxToM(d.rx, scale) * pxToM(d.ry, scale);
+  if (d.type === 'polygon') return calcPolygonArea(d.points, scale);
   return 0;
 }
 
@@ -28,6 +98,7 @@ export function calcScale(x1: number, y1: number, x2: number, y2: number, realM:
 export function shapeCentroid(d: ShapeData): { x: number; y: number } {
   if (d.type === 'rect')    return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
   if (d.type === 'circle')  return { x: d.cx, y: d.cy };
+  if (d.type === 'polygon') return polygonCentroid(d.points);
   return { x: d.cx, y: d.cy }; // ellipse
 }
 
@@ -50,5 +121,6 @@ export function pointInShape(d: ShapeData, x: number, y: number): boolean {
   if (d.type === 'rect')    return pointInRect(d, x, y);
   if (d.type === 'circle')  return pointInCircle(d, x, y);
   if (d.type === 'ellipse') return pointInEllipse(d, x, y);
+  if (d.type === 'polygon') return pointInPolygon(d.points, x, y);
   return false;
 }

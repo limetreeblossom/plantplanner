@@ -49,4 +49,9 @@ export interface EllipseShape extends ShapeBase {
   ry: number;
 }
 
-export type ShapeData = RectShape | CircleShape | EllipseShape;
+export interface PolygonShape extends ShapeBase {
+  type: 'polygon';
+  points: Array<{ x: number; y: number }>;
+}
+
+export type ShapeData = RectShape | CircleShape | EllipseShape | PolygonShape;
