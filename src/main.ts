@@ -69,27 +69,51 @@ let moveBgOrigX  = 0, moveBgOrigY  = 0;
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
   const g = document.getElementById('grid-layer') as SVGGElement;
-  g.innerHTML = ''; // clear before (re)draw
+  g.innerHTML = '';
 
-  const step = Math.max(1, Math.round(scale)); // integer px per metre for major lines
-  for (let x = 0; x <= CANVAS_W; x += 50) {
-    const major = x > 0 && x % step === 0;
+  const major = scale;       // 1 m
+  const minor = scale / 2;   // 0.5 m
+  const showMinor = scale >= 50;
+
+  // Minor lines first (drawn underneath major lines)
+  if (showMinor) {
+    for (let i = 1; i * minor <= CANVAS_W; i++) {
+      const x = i * minor;
+      const ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', String(x)); ln.setAttribute('y1', '0');
+      ln.setAttribute('x2', String(x)); ln.setAttribute('y2', String(CANVAS_H));
+      ln.setAttribute('stroke', '#e8f0e4'); ln.setAttribute('stroke-width', '0.5');
+      g.appendChild(ln);
+    }
+    for (let i = 1; i * minor <= CANVAS_H; i++) {
+      const y = i * minor;
+      const ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', '0'); ln.setAttribute('y1', String(y));
+      ln.setAttribute('x2', String(CANVAS_W)); ln.setAttribute('y2', String(y));
+      ln.setAttribute('stroke', '#e8f0e4'); ln.setAttribute('stroke-width', '0.5');
+      g.appendChild(ln);
+    }
+  }
+
+  // Major lines (1 m intervals) overdrawn on top
+  for (let i = 0; i * major <= CANVAS_W; i++) {
+    const x = i * major;
     const ln = document.createElementNS(NS, 'line');
     ln.setAttribute('x1', String(x)); ln.setAttribute('y1', '0');
     ln.setAttribute('x2', String(x)); ln.setAttribute('y2', String(CANVAS_H));
-    ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
-    ln.setAttribute('stroke-width', major ? '1' : '0.5');
+    ln.setAttribute('stroke', '#c8d8c0'); ln.setAttribute('stroke-width', '1');
     g.appendChild(ln);
   }
-  for (let y = 0; y <= CANVAS_H; y += 50) {
-    const major = y > 0 && y % step === 0;
+  for (let i = 0; i * major <= CANVAS_H; i++) {
+    const y = i * major;
     const ln = document.createElementNS(NS, 'line');
     ln.setAttribute('x1', '0'); ln.setAttribute('y1', String(y));
     ln.setAttribute('x2', String(CANVAS_W)); ln.setAttribute('y2', String(y));
-    ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
-    ln.setAttribute('stroke-width', major ? '1' : '0.5');
+    ln.setAttribute('stroke', '#c8d8c0'); ln.setAttribute('stroke-width', '1');
     g.appendChild(ln);
   }
+
+  // Metre labels
   for (let m = 1; m * scale <= CANVAS_W; m++) {
     const txt = document.createElementNS(NS, 'text');
     txt.setAttribute('x', String(Math.round(m * scale))); txt.setAttribute('y', '11');
@@ -384,10 +408,20 @@ function deleteSelected(): void {
 
 deleteBtn.addEventListener('click', deleteSelected);
 
-// ── CC spacing rings toggle ────────────────────────────────────────────────
+// ── Visibility toggles ─────────────────────────────────────────────────────
 const ringsToggle = document.getElementById('rings-toggle') as HTMLInputElement;
 ringsToggle.addEventListener('change', () => {
   document.body.classList.toggle('hide-rings', !ringsToggle.checked);
+});
+
+const gridToggle = document.getElementById('grid-toggle') as HTMLInputElement;
+gridToggle.addEventListener('change', () => {
+  document.body.classList.toggle('hide-grid', !gridToggle.checked);
+});
+
+const bgToggle = document.getElementById('bg-toggle') as HTMLInputElement;
+bgToggle.addEventListener('change', () => {
+  document.body.classList.toggle('hide-bg', !bgToggle.checked);
 });
 
 // ── Polygon drawing helpers ────────────────────────────────────────────────

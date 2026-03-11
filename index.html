@@ -70,6 +70,8 @@
 
     /* Hide spacing rings when toggled off */
     body.hide-rings .spacing-ring { display: none; }
+    body.hide-grid  #grid-layer   { display: none; }
+    body.hide-bg    #bg-layer     { display: none; }
 
     /* ── CC toggle switch ── */
     .toggle-wrap {
@@ -335,6 +337,16 @@
     <input type="checkbox" id="rings-toggle" checked>
     <span class="toggle-track"><span class="toggle-thumb"></span></span>
     <span>CC</span>
+  </label>
+  <label class="toggle-wrap" title="Show/hide grid">
+    <input type="checkbox" id="grid-toggle" checked>
+    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    <span>Grid</span>
+  </label>
+  <label class="toggle-wrap" title="Show/hide background image">
+    <input type="checkbox" id="bg-toggle" checked>
+    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    <span>BG</span>
   </label>
 
   <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
