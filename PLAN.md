@@ -129,7 +129,7 @@ _Deferred — revisit after Phase 5 is complete._
 | Save format | JSON file download/upload |
 | Output | On-screen list + CSV export + PDF export |
 | Devices | Desktop with mouse |
-| Framework | None — plain HTML/JS/CSS |
+| Framework | Vite (dev/build), Vitest (tests), TypeScript |
 | Testing | None for Phases 1–2; TDD from Phase 3 onwards |
 | Multi-user | Not in scope |
 
@@ -141,6 +141,7 @@ _Deferred — revisit after Phase 5 is complete._
 |---|---|
 | 1 — Canvas & Shapes | ✅ Complete |
 | 2 — Plant Placement  | ✅ Complete |
+| ⚑ Prototype checkpoint | ✅ Complete |
 | 3 — Plant Database | ⬜ Not started |
 | 4 — Save / Load / Export | ⬜ Not started |
 | 5 — Polish & UX | ⬜ Not started |
@@ -155,3 +156,4 @@ _Update this section as phases complete or decisions change._
 - **2026-03-11** — Initial plan created. Phases defined, assumptions validated.
 - **2026-03-11** — Phase 1 complete. Single `index.html`, SVG canvas with grid, draw rect/circle/ellipse, select/delete, info panel with real-world dimensions and area.
 - **2026-03-11** — Phase 2 revised and re-implemented. Replaced dropdown/hex-packing system with individual plant placement: left sidebar palette, drag-and-drop markers (colored dot + initial) onto shapes, click-to-delete markers, updated summary with color swatches.
+- **2026-03-11** — Prototype checkpoint complete. Introduced Vite + Vitest + TypeScript. Extracted pure logic into `src/types.ts`, `src/plants.ts`, `src/geometry.ts`; UI code moved to `src/main.ts`. 34 tests, all passing.
