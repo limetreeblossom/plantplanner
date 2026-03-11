@@ -2,31 +2,38 @@
 
 ## Overview
 
-A browser-based tool for planning flowerbeds. Users draw shapes representing beds, assign plants to them, and get a total plant count as output. Runs from local files; no server or build step required.
+A browser-based tool for planning flowerbeds. Users draw shapes representing beds, drag individual plants onto them at specific positions, and get a total plant count. Served via Vite dev server; built as a static site.
 
 ---
 
 ## Architecture Decisions
 
 ### Tech stack
-- **Plain HTML + JavaScript + CSS** — no framework, no build step, runs directly from the filesystem
-- **SVG** for the drawing canvas — shapes are objects (not pixels), enabling click-to-select, move, and resize without redrawing
-- **Fabric.js** (or plain SVG + JS) for the object model layer
-- **jsPDF** for PDF export
-- **CSV export** via a Blob download (no library needed)
-- **Vitest** for unit testing (introduced at Phase 3)
+- **TypeScript + Vite + Vitest** — strict TypeScript, Vite for dev server and build, Vitest for tests
+- **SVG** for the drawing canvas — shapes are objects (not pixels), enabling click-to-select without redrawing
+- **Plain SVG + DOM** for the object model layer — no Fabric.js
+- **jsPDF** for PDF export (Phase 4)
+- **CSV export** via a Blob download, no library needed (Phase 4)
+
+### Module structure
+- `src/types.ts` — shared TypeScript interfaces (`Plant`, `PlantMarker`, `ShapeData` discriminated union, `LabelEl`)
+- `src/plants.ts` — `PLANTS` database, typed as `Plant[]`
+- `src/geometry.ts` — pure geometry: `calcArea`, `shapeCentroid`, `pointInShape` family, `pxToM`, `fmt`, constants
+- `src/main.ts` — all DOM, SVG rendering, and event handling; imports from the modules above
 
 ### Data model
-- Each design is a single JSON file containing shapes, plant assignments, and the plant database
-- The plant database ships as a bundled `plants.json` (~20 common plants) that the user can extend via UI
+- Each design will be saved as a single JSON file (Phase 4): shapes, placed plant markers, and the plant database
+- The plant database ships as a hardcoded array in `src/plants.ts` (~10 plants); extendable via UI in Phase 3
 
-### Plant density calculation
-- Default: **hexagonal packing** — `count = area / (spacing² × 0.866)`
-- User can override the count per shape manually (mixed mode)
+### Plant placement
+- **Individual placement** — plants are dragged from a left sidebar palette and dropped at a specific position within a shape
+- Each placed marker stores `{ plant, x, y, el }` in a `plantMarkers` array on the shape
+- A dashed cc spacing ring (radius = `spacing / 2`) is shown around each marker as a visual guide
+- No automatic density calculation — plant count = number of markers placed
 
 ### Units
-- **Meters** as the primary unit
-- Feet toggle can be added later as a display layer
+- **Meters** as the primary unit (1 m = 100 px, `SCALE = 100`)
+- Feet toggle deferred to Phase 5
 
 ### Overlap behavior
 - Beds are **independent** — no overlap detection
@@ -121,11 +128,12 @@ _Deferred — revisit after Phase 5 is complete._
 
 | Topic | Decision |
 |---|---|
-| Units | Meters primary; feet toggle deferred |
-| Density model | Hexagonal packing with manual override |
+| Units | Meters primary (1 m = 100 px); feet toggle deferred |
+| Plant placement | Individual drag-and-drop markers; no auto density calculation |
+| CC spacing ring | Dashed ring (radius = spacing / 2) shown per marker; toggleable |
 | Overlap handling | Beds are independent; no overlap detection |
 | Scope per design | One flowerbed at a time |
-| Plant database | Bundled `plants.json`, user-extendable via UI |
+| Plant database | Hardcoded in `src/plants.ts`, user-extendable via UI in Phase 3 |
 | Save format | JSON file download/upload |
 | Output | On-screen list + CSV export + PDF export |
 | Devices | Desktop with mouse |
