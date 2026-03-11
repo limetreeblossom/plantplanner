@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flowerbed Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #f4f6f0;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      flex-shrink: 0;
+    }
+
+    #app-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #2e6b18;
+      margin-right: 14px;
+      white-space: nowrap;
+    }
+
+    .sep { width: 1px; height: 24px; background: #ddd; margin: 0 4px; }
+
+    .tool-btn {
+      padding: 5px 13px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #f7f7f7;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: background 0.1s, border-color 0.1s;
+      white-space: nowrap;
+    }
+    .tool-btn:hover { background: #e8f5e9; border-color: #66bb6a; }
+    .tool-btn.active {
+      background: #43a047;
+      color: #fff;
+      border-color: #2e7d32;
+    }
+
+    #delete-btn {
+      margin-left: auto;
+      padding: 5px 13px;
+      border: 1px solid #e57373;
+      border-radius: 5px;
+      background: #fff;
+      color: #c62828;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: background 0.1s;
+    }
+    #delete-btn:hover:not(:disabled) { background: #ffebee; }
+    #delete-btn:disabled { opacity: 0.35; cursor: default; }
+
+    /* ── Workspace ── */
+    #workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #canvas-container {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+
+    #canvas {
+      background: #fff;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      display: block;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    #canvas.tool-select { cursor: default; }
+    #canvas.tool-draw   { cursor: crosshair; }
+
+    /* ── Right panel ── */
+    #right-panel {
+      width: 230px;
+      flex-shrink: 0;
+      background: #fff;
+      border-left: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid #eee;
+      overflow-y: auto;
+      font-size: 0.83rem;
+    }
+    .panel-section:last-child { border-bottom: none; flex: 1; }
+
+    .panel-section h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .info-empty { color: #bbb; font-style: italic; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .info-label { color: #888; }
+    .info-value { font-weight: 600; color: #333; }
+
+    .info-divider { border: none; border-top: 1px solid #eee; margin: 9px 0; }
+
+    .info-area {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2e6b18;
+      margin-bottom: 12px;
+    }
+
+    /* ── Plant assignment ── */
+    .plant-label {
+      font-size: 0.78rem;
+      color: #777;
+      margin-bottom: 4px;
+    }
+
+    select.plant-select {
+      width: 100%;
+      padding: 5px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      background: #fafafa;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    select.plant-select:focus { outline: none; border-color: #43a047; }
+
+    .plant-count-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f8e9;
+      border: 1px solid #c5e1a5;
+      border-radius: 4px;
+      padding: 6px 8px;
+    }
+    .plant-count-label { font-size: 0.78rem; color: #558b2f; }
+    .plant-count-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #2e6b18;
+    }
+
+    /* ── Plant summary ── */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+      font-size: 0.83rem;
+    }
+    .summary-name { color: #444; }
+    .summary-count {
+      font-weight: 600;
+      color: #333;
+      background: #f0f0f0;
+      border-radius: 10px;
+      padding: 0 7px;
+      font-size: 0.78rem;
+    }
+    .summary-total {
+      font-weight: 700;
+      color: #2e6b18;
+      font-size: 0.88rem;
+    }
+    .summary-total .summary-count {
+      background: #c8e6c9;
+      color: #1b5e20;
+    }
+
+    /* ── Hint ── */
+    .info-hint {
+      font-size: 0.72rem;
+      color: #ccc;
+      line-height: 1.6;
+    }
+
+    /* ── Status bar ── */
+    #status-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 4px 14px;
+      background: #eef2ea;
+      border-top: 1px solid #d8e0d2;
+      font-size: 0.75rem;
+      color: #6a7a62;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span id="app-title">Flowerbed Planner</span>
+
+  <button class="tool-btn active" data-tool="select" title="Select (S)">Select</button>
+  <div class="sep"></div>
+  <button class="tool-btn" data-tool="rect"    title="Rectangle (R)">Rectangle</button>
+  <button class="tool-btn" data-tool="circle"  title="Circle (C)">Circle</button>
+  <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
+
+  <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
+</div>
+
+<div id="workspace">
+  <div id="canvas-container">
+    <svg id="canvas" width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+      <g id="grid-layer"></g>
+      <g id="shapes-layer"></g>
+      <g id="label-layer"></g>
+      <g id="overlay-layer"></g>
+    </svg>
+  </div>
+
+  <div id="right-panel">
+
+    <!-- Shape info + plant assignment -->
+    <div class="panel-section" id="shape-section">
+      <h2>Shape Info</h2>
+      <div id="info-content">
+        <div class="info-empty">No shape selected.</div>
+      </div>
+      <div class="info-hint" style="margin-top:10px;">
+        <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br>
+        <b>E</b> ellipse &nbsp; <b>Del</b> delete
+      </div>
+    </div>
+
+    <!-- Running plant totals -->
+    <div class="panel-section" id="summary-section">
+      <h2>Plant Summary</h2>
+      <div id="summary-content">
+        <div class="info-empty">No plants assigned yet.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="status-bar">
+  <span>Scale: 1 m = 100 px</span>
+  <span>|</span>
+  <span>Canvas: 9 m &times; 6 m</span>
+  <span id="status-msg"></span>
+</div>
+
+<script>
+  // ── Plant database ─────────────────────────────────────────────────────────
+  // spacing in metres; used for hexagonal packing density
+  const PLANTS = [
+    { name: 'Rose',        spacing: 0.50, color: '#e91e63' },
+    { name: 'Lavender',    spacing: 0.30, color: '#7e57c2' },
+    { name: 'Tulip',       spacing: 0.20, color: '#ef5350' },
+    { name: 'Peony',       spacing: 0.60, color: '#ec407a' },
+    { name: 'Geranium',    spacing: 0.25, color: '#ff7043' },
+    { name: 'Salvia',      spacing: 0.35, color: '#5c6bc0' },
+    { name: 'Sunflower',   spacing: 0.50, color: '#ffca28' },
+    { name: 'Marigold',    spacing: 0.25, color: '#ffa726' },
+    { name: 'Hosta',       spacing: 0.45, color: '#66bb6a' },
+    { name: 'Daisy',       spacing: 0.30, color: '#ffffff' },
+  ];
+
+  // ── Constants ──────────────────────────────────────────────────────────────
+  const SCALE    = 100;   // pixels per metre
+  const CANVAS_W = 900;
+  const CANVAS_H = 600;
+  const HEX_PACK = Math.sqrt(3) / 2;  // ≈ 0.866 — hexagonal packing factor
+
+  // Colour palette for bed shapes (cycles)
+  const FILL_COLORS   = ['rgba(76,175,80,0.22)', 'rgba(255,193,7,0.22)',
+                          'rgba(33,150,243,0.22)', 'rgba(233,30,99,0.22)',
+                          'rgba(156,39,176,0.22)', 'rgba(255,87,34,0.22)'];
+  const STROKE_COLORS = ['#388e3c','#f9a825','#1565c0','#880e4f',
+                          '#6a1b9a','#bf360c'];
+  let colorIndex = 0;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const svgEl        = document.getElementById('canvas');
+  const shapesLayer  = document.getElementById('shapes-layer');
+  const labelLayer   = document.getElementById('label-layer');
+  const overlayLayer = document.getElementById('overlay-layer');
+  const infoContent  = document.getElementById('info-content');
+  const summaryContent = document.getElementById('summary-content');
+  const deleteBtn    = document.getElementById('delete-btn');
+  const statusMsg    = document.getElementById('status-msg');
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentTool  = 'select';
+  let drawing      = false;
+  let startX = 0, startY = 0;
+  let activeEl     = null;   // SVG element being drawn
+  let selectedData = null;   // currently selected shapeData
+  let shapes       = [];     // all shapeData objects
+
+  // shapeData = { type, el, labelEl, fill, stroke, plant, ...dims }
+  //   rect:    x, y, w, h   (px)
+  //   circle:  cx, cy, r    (px)
+  //   ellipse: cx, cy, rx, ry (px)
+  //   plant:   PLANTS[i] or null
+
+  // ── Geometry utilities ─────────────────────────────────────────────────────
+  function pxToM(px)    { return px / SCALE; }
+  function fmt(m, dp=2) { return m.toFixed(dp); }
+
+  function calcArea(d) {
+    if (d.type === 'rect')    return pxToM(d.w) * pxToM(d.h);
+    if (d.type === 'circle')  return Math.PI * pxToM(d.r) ** 2;
+    if (d.type === 'ellipse') return Math.PI * pxToM(d.rx) * pxToM(d.ry);
+    return 0;
+  }
+
+  // Hexagonal packing: count = floor(area / (spacing² × √3/2))
+  function calcCount(d) {
+    if (!d.plant) return 0;
+    const area = calcArea(d);
+    const s = d.plant.spacing;
+    return Math.floor(area / (s * s * HEX_PACK));
+  }
+
+  function shapeCentroid(d) {
+    if (d.type === 'rect')    return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
+    if (d.type === 'circle')  return { x: d.cx, y: d.cy };
+    if (d.type === 'ellipse') return { x: d.cx, y: d.cy };
+  }
+
+  function svgCoords(e) {
+    const rect = svgEl.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  // ── Grid ───────────────────────────────────────────────────────────────────
+  function drawGrid() {
+    const g = document.getElementById('grid-layer');
+    const ns = 'http://www.w3.org/2000/svg';
+
+    for (let x = 0; x <= CANVAS_W; x += 50) {
+      const major = x % SCALE === 0;
+      const ln = document.createElementNS(ns, 'line');
+      ln.setAttribute('x1', x); ln.setAttribute('y1', 0);
+      ln.setAttribute('x2', x); ln.setAttribute('y2', CANVAS_H);
+      ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
+      ln.setAttribute('stroke-width', major ? '1' : '0.5');
+      g.appendChild(ln);
+    }
+    for (let y = 0; y <= CANVAS_H; y += 50) {
+      const major = y % SCALE === 0;
+      const ln = document.createElementNS(ns, 'line');
+      ln.setAttribute('x1', 0); ln.setAttribute('y1', y);
+      ln.setAttribute('x2', CANVAS_W); ln.setAttribute('y2', y);
+      ln.setAttribute('stroke', major ? '#c8d8c0' : '#e8f0e4');
+      ln.setAttribute('stroke-width', major ? '1' : '0.5');
+      g.appendChild(ln);
+    }
+    for (let m = 1; m * SCALE <= CANVAS_W; m++) {
+      const txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', m * SCALE); txt.setAttribute('y', 11);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
+      txt.textContent = m + 'm'; g.appendChild(txt);
+    }
+    for (let m = 1; m * SCALE <= CANVAS_H; m++) {
+      const txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', 4); txt.setAttribute('y', m * SCALE + 4);
+      txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
+      txt.textContent = m + 'm'; g.appendChild(txt);
+    }
+  }
+
+  // ── Floating dimension label (during draw) ─────────────────────────────────
+  let dimLabel = null;
+
+  function ensureDimLabel() {
+    if (dimLabel) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    const g  = document.createElementNS(ns, 'g');
+    const bg = document.createElementNS(ns, 'rect');
+    bg.setAttribute('fill', 'rgba(0,0,0,0.65)'); bg.setAttribute('rx', '3');
+    const tx = document.createElementNS(ns, 'text');
+    tx.setAttribute('fill', '#fff'); tx.setAttribute('font-size', '11');
+    tx.setAttribute('font-family', 'system-ui,sans-serif');
+    tx.setAttribute('text-anchor', 'middle');
+    tx.setAttribute('dominant-baseline', 'middle');
+    g.appendChild(bg); g.appendChild(tx);
+    overlayLayer.appendChild(g);
+    dimLabel = { g, bg, tx };
+  }
+
+  function updateDimLabel(x, y, text) {
+    ensureDimLabel();
+    const pad = 5, h = 18;
+    const w = text.length * 6.2 + pad * 2;
+    dimLabel.tx.textContent = text;
+    dimLabel.bg.setAttribute('width', w);  dimLabel.bg.setAttribute('height', h);
+    dimLabel.bg.setAttribute('x', x - w / 2); dimLabel.bg.setAttribute('y', y - h / 2);
+    dimLabel.tx.setAttribute('x', x); dimLabel.tx.setAttribute('y', y);
+    dimLabel.g.style.display = '';
+  }
+
+  function hideDimLabel() { if (dimLabel) dimLabel.g.style.display = 'none'; }
+
+  // ── Permanent canvas label on each shape ───────────────────────────────────
+  // Shows: line1 = plant name (or area), line2 = count (if plant assigned)
+  function makeLabelEl(d) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const g  = document.createElementNS(ns, 'g');
+    g.style.pointerEvents = 'none';
+
+    const bg = document.createElementNS(ns, 'rect');
+    bg.setAttribute('fill', 'rgba(255,255,255,0.82)');
+    bg.setAttribute('rx', '3');
+
+    const tx1 = document.createElementNS(ns, 'text'); // area or plant name
+    const tx2 = document.createElementNS(ns, 'text'); // count (optional)
+
+    for (const tx of [tx1, tx2]) {
+      tx.setAttribute('font-size', '10');
+      tx.setAttribute('font-family', 'system-ui,sans-serif');
+      tx.setAttribute('fill', '#333');
+      tx.setAttribute('text-anchor', 'middle');
+      tx.setAttribute('dominant-baseline', 'middle');
+    }
+
+    g.appendChild(bg); g.appendChild(tx1); g.appendChild(tx2);
+    labelLayer.appendChild(g);
+    return { g, bg, tx1, tx2 };
+  }
+
+  function updateLabelEl(d) {
+    if (!d.labelEl) return;
+    const { g, bg, tx1, tx2 } = d.labelEl;
+    const { x: cx, y: cy } = shapeCentroid(d);
+
+    let line1, line2;
+    if (d.plant) {
+      const count = calcCount(d);
+      line1 = d.plant.name;
+      line2  = count + ' plants';
+    } else {
+      line1 = fmt(calcArea(d)) + ' m²';
+      line2  = '';
+    }
+
+    const twoLines = line2 !== '';
+    const pad = 4;
+    const lineH = 13;
+    const totalH = twoLines ? lineH * 2 + pad * 2 : lineH + pad * 2;
+    const maxLen = Math.max(line1.length, line2.length);
+    const totalW = maxLen * 6 + pad * 2;
+
+    tx1.textContent = line1;
+    tx1.setAttribute('x', cx);
+    tx1.setAttribute('y', twoLines ? cy - lineH / 2 : cy);
+    tx1.setAttribute('font-weight', d.plant ? '600' : 'normal');
+
+    tx2.textContent = line2;
+    tx2.setAttribute('x', cx);
+    tx2.setAttribute('y', cy + lineH / 2);
+    tx2.style.display = twoLines ? '' : 'none';
+
+    bg.setAttribute('width',  totalW);
+    bg.setAttribute('height', totalH);
+    bg.setAttribute('x', cx - totalW / 2);
+    bg.setAttribute('y', cy - totalH / 2);
+  }
+
+  function removeLabelEl(d) {
+    if (d.labelEl) { d.labelEl.g.remove(); d.labelEl = null; }
+  }
+
+  // ── Info panel ────────────────────────────────────────────────────────────
+  function plantOptionsHTML(selectedPlant) {
+    const none = `<option value="-1"${!selectedPlant ? ' selected' : ''}>— None —</option>`;
+    const opts = PLANTS.map((p, i) => {
+      const sel = selectedPlant && selectedPlant.name === p.name ? ' selected' : '';
+      return `<option value="${i}"${sel}>${p.name} (${p.spacing}m spacing)</option>`;
+    }).join('');
+    return none + opts;
+  }
+
+  function updateInfoPanel(d) {
+    if (!d) {
+      infoContent.innerHTML = '<div class="info-empty">No shape selected.</div>';
+      deleteBtn.disabled = true;
+      return;
+    }
+    deleteBtn.disabled = false;
+
+    const area = calcArea(d);
+    let dimRows = '';
+
+    if (d.type === 'rect') {
+      dimRows = `
+        <div class="info-row">
+          <span class="info-label">Type</span><span class="info-value">Rectangle</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.w))} m</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.h))} m</span>
+        </div>`;
+    } else if (d.type === 'circle') {
+      dimRows = `
+        <div class="info-row">
+          <span class="info-label">Type</span><span class="info-value">Circle</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Radius</span><span class="info-value">${fmt(pxToM(d.r))} m</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Diameter</span><span class="info-value">${fmt(pxToM(d.r) * 2)} m</span>
+        </div>`;
+    } else if (d.type === 'ellipse') {
+      dimRows = `
+        <div class="info-row">
+          <span class="info-label">Type</span><span class="info-value">Ellipse</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.rx) * 2)} m</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry) * 2)} m</span>
+        </div>`;
+    }
+
+    const countHTML = d.plant ? `
+      <div class="plant-count-row">
+        <span class="plant-count-label">Plants needed</span>
+        <span class="plant-count-value">${calcCount(d)}</span>
+      </div>` : '';
+
+    infoContent.innerHTML = `
+      ${dimRows}
+      <hr class="info-divider">
+      <div class="info-area">Area: ${fmt(area)} m²</div>
+      <div class="plant-label">Assign plant</div>
+      <select class="plant-select" id="plant-select">
+        ${plantOptionsHTML(d.plant)}
+      </select>
+      ${countHTML}
+    `;
+  }
+
+  // Delegate change events from the dynamically rendered dropdown
+  infoContent.addEventListener('change', e => {
+    if (e.target.id !== 'plant-select') return;
+    if (!selectedData) return;
+    const idx = parseInt(e.target.value);
+    selectedData.plant = idx >= 0 ? PLANTS[idx] : null;
+    updateLabelEl(selectedData);
+    updateInfoPanel(selectedData);   // re-render to show/hide count
+    updateSummary();
+  });
+
+  // ── Plant summary ─────────────────────────────────────────────────────────
+  function updateSummary() {
+    const totals = {}; // plant name → count
+    for (const d of shapes) {
+      if (!d.plant) continue;
+      const n = d.plant.name;
+      totals[n] = (totals[n] || 0) + calcCount(d);
+    }
+    const entries = Object.entries(totals);
+    if (entries.length === 0) {
+      summaryContent.innerHTML = '<div class="info-empty">No plants assigned yet.</div>';
+      return;
+    }
+    let grandTotal = 0;
+    let html = '';
+    for (const [name, count] of entries) {
+      grandTotal += count;
+      html += `<div class="summary-row">
+        <span class="summary-name">${name}</span>
+        <span class="summary-count">${count}</span>
+      </div>`;
+    }
+    html += `<hr class="info-divider">
+      <div class="summary-row summary-total">
+        <span>Total</span>
+        <span class="summary-count">${grandTotal}</span>
+      </div>`;
+    summaryContent.innerHTML = html;
+  }
+
+  // ── Selection ─────────────────────────────────────────────────────────────
+  const SEL_STROKE = '#1565c0';
+  const SEL_SW     = '3';
+  const DEF_SW     = '1.5';
+
+  function selectShape(d) {
+    if (selectedData) {
+      selectedData.el.setAttribute('stroke', selectedData.stroke);
+      selectedData.el.setAttribute('stroke-width', DEF_SW);
+    }
+    selectedData = d;
+    if (d) {
+      d.el.setAttribute('stroke', SEL_STROKE);
+      d.el.setAttribute('stroke-width', SEL_SW);
+    }
+    updateInfoPanel(d);
+  }
+
+  function findShapeByEl(el) {
+    return shapes.find(s => s.el === el) || null;
+  }
+
+  // ── Deletion ──────────────────────────────────────────────────────────────
+  function deleteSelected() {
+    if (!selectedData) return;
+    selectedData.el.remove();
+    removeLabelEl(selectedData);
+    shapes = shapes.filter(s => s !== selectedData);
+    selectedData = null;
+    updateInfoPanel(null);
+    updateSummary();
+  }
+
+  deleteBtn.addEventListener('click', deleteSelected);
+
+  // ── Tool switching ────────────────────────────────────────────────────────
+  function setTool(name) {
+    currentTool = name;
+    document.querySelectorAll('.tool-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tool === name);
+    });
+    svgEl.className = name === 'select' ? 'tool-select' : 'tool-draw';
+    statusMsg.textContent = '';
+  }
+
+  document.querySelectorAll('.tool-btn').forEach(b => {
+    b.addEventListener('click', () => setTool(b.dataset.tool));
+  });
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelected(); return; }
+    if (e.key === 's' || e.key === 'S') setTool('select');
+    if (e.key === 'r' || e.key === 'R') setTool('rect');
+    if (e.key === 'c' || e.key === 'C') setTool('circle');
+    if (e.key === 'e' || e.key === 'E') setTool('ellipse');
+  });
+
+  // ── Drawing ───────────────────────────────────────────────────────────────
+  const NS = 'http://www.w3.org/2000/svg';
+
+  function nextColor() {
+    const i = colorIndex % FILL_COLORS.length;
+    colorIndex++;
+    return { fill: FILL_COLORS[i], stroke: STROKE_COLORS[i] };
+  }
+
+  svgEl.addEventListener('mousedown', e => {
+    if (currentTool === 'select') {
+      const hit = e.target.closest('[data-shape]');
+      selectShape(hit ? findShapeByEl(hit) : null);
+      return;
+    }
+
+    const p = svgCoords(e);
+    startX = p.x; startY = p.y;
+    drawing = true;
+
+    const { fill, stroke } = nextColor();
+
+    if (currentTool === 'rect') {
+      activeEl = document.createElementNS(NS, 'rect');
+      activeEl.setAttribute('x', startX); activeEl.setAttribute('y', startY);
+      activeEl.setAttribute('width', 0);  activeEl.setAttribute('height', 0);
+    } else if (currentTool === 'circle') {
+      activeEl = document.createElementNS(NS, 'circle');
+      activeEl.setAttribute('cx', startX); activeEl.setAttribute('cy', startY);
+      activeEl.setAttribute('r', 0);
+    } else if (currentTool === 'ellipse') {
+      activeEl = document.createElementNS(NS, 'ellipse');
+      activeEl.setAttribute('cx', startX); activeEl.setAttribute('cy', startY);
+      activeEl.setAttribute('rx', 0); activeEl.setAttribute('ry', 0);
+    }
+
+    activeEl.setAttribute('fill', fill);
+    activeEl.setAttribute('stroke', stroke);
+    activeEl.setAttribute('stroke-width', DEF_SW);
+    activeEl.dataset.shape = '1';
+    activeEl.style.cursor = 'pointer';
+    activeEl._fill   = fill;
+    activeEl._stroke = stroke;
+
+    shapesLayer.appendChild(activeEl);
+    e.preventDefault();
+  });
+
+  svgEl.addEventListener('mousemove', e => {
+    if (!drawing || !activeEl) return;
+    const p = svgCoords(e);
+
+    if (currentTool === 'rect') {
+      const x = Math.min(startX, p.x), y = Math.min(startY, p.y);
+      const w = Math.abs(p.x - startX),  h = Math.abs(p.y - startY);
+      activeEl.setAttribute('x', x); activeEl.setAttribute('y', y);
+      activeEl.setAttribute('width', w); activeEl.setAttribute('height', h);
+      updateDimLabel(x + w / 2, y - 12, `${fmt(pxToM(w))} × ${fmt(pxToM(h))} m`);
+
+    } else if (currentTool === 'circle') {
+      const dx = p.x - startX, dy = p.y - startY;
+      const r = Math.sqrt(dx * dx + dy * dy);
+      activeEl.setAttribute('r', r);
+      updateDimLabel(startX, startY - r - 14, `r = ${fmt(pxToM(r))} m`);
+
+    } else if (currentTool === 'ellipse') {
+      const rx = Math.abs(p.x - startX) / 2, ry = Math.abs(p.y - startY) / 2;
+      const cx = (startX + p.x) / 2,          cy = (startY + p.y) / 2;
+      activeEl.setAttribute('cx', cx); activeEl.setAttribute('cy', cy);
+      activeEl.setAttribute('rx', rx); activeEl.setAttribute('ry', ry);
+      updateDimLabel(cx, cy - ry - 14, `${fmt(pxToM(rx * 2))} × ${fmt(pxToM(ry * 2))} m`);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!drawing || !activeEl) return;
+    drawing = false;
+    hideDimLabel();
+
+    let d = null;
+
+    if (currentTool === 'rect') {
+      const w = parseFloat(activeEl.getAttribute('width'))  || 0;
+      const h = parseFloat(activeEl.getAttribute('height')) || 0;
+      if (w < 4 || h < 4) { activeEl.remove(); activeEl = null; return; }
+      d = {
+        type: 'rect', el: activeEl, plant: null,
+        x: parseFloat(activeEl.getAttribute('x')),
+        y: parseFloat(activeEl.getAttribute('y')),
+        w, h,
+        fill: activeEl._fill, stroke: activeEl._stroke,
+      };
+
+    } else if (currentTool === 'circle') {
+      const r = parseFloat(activeEl.getAttribute('r')) || 0;
+      if (r < 4) { activeEl.remove(); activeEl = null; return; }
+      d = {
+        type: 'circle', el: activeEl, plant: null,
+        cx: parseFloat(activeEl.getAttribute('cx')),
+        cy: parseFloat(activeEl.getAttribute('cy')),
+        r,
+        fill: activeEl._fill, stroke: activeEl._stroke,
+      };
+
+    } else if (currentTool === 'ellipse') {
+      const rx = parseFloat(activeEl.getAttribute('rx')) || 0;
+      const ry = parseFloat(activeEl.getAttribute('ry')) || 0;
+      if (rx < 4 || ry < 4) { activeEl.remove(); activeEl = null; return; }
+      d = {
+        type: 'ellipse', el: activeEl, plant: null,
+        cx: parseFloat(activeEl.getAttribute('cx')),
+        cy: parseFloat(activeEl.getAttribute('cy')),
+        rx, ry,
+        fill: activeEl._fill, stroke: activeEl._stroke,
+      };
+    }
+
+    if (!d) { activeEl = null; return; }
+
+    d.labelEl = makeLabelEl(d);
+    updateLabelEl(d);
+    shapes.push(d);
+    activeEl = null;
+
+    setTool('select');
+    selectShape(d);
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  drawGrid();
+  setTool('select');
+</script>
+</body>
+</html>
