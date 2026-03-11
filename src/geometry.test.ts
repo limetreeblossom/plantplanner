@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  SCALE, pxToM, fmt, calcArea, shapeCentroid, pointInShape,
+  SCALE, pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale,
 } from './geometry';
 import type { RectShape, CircleShape, EllipseShape } from './types';
 
@@ -89,4 +89,22 @@ describe('pointInShape — ellipse', () => {
   it('top vertex inside',    () => expect(pointInShape(ellipse, 200, 250)).toBe(true));
   it('just outside ry',      () => expect(pointInShape(ellipse, 200, 251)).toBe(false));
   it('far outside is false', () => expect(pointInShape(ellipse, 500, 500)).toBe(false));
+});
+
+describe('calcScale', () => {
+  it('100 px / 1 m → 100',             () => expect(calcScale(0, 0, 100, 0, 1)).toBeCloseTo(100, 5));
+  it('200 px / 2 m → 100',             () => expect(calcScale(0, 0, 200, 0, 2)).toBeCloseTo(100, 5));
+  it('150 px / 3 m → 50',              () => expect(calcScale(0, 0, 150, 0, 3)).toBeCloseTo(50, 5));
+  it('3-4-5 triangle / 5 m → 1',       () => expect(calcScale(0, 0, 3, 4, 5)).toBeCloseTo(1, 5));
+  it('realM ≤ 0 returns default SCALE', () => expect(calcScale(0, 0, 100, 0, 0)).toBe(SCALE));
+});
+
+describe('pxToM with custom scale', () => {
+  it('100 px at scale 50 → 2 m',   () => expect(pxToM(100, 50)).toBe(2));
+  it('100 px at scale 100 → 1 m',  () => expect(pxToM(100, 100)).toBe(1));
+});
+
+describe('calcArea with custom scale', () => {
+  it('rect 300×200 px at scale 50 → 24 m²',  () => expect(calcArea(rect, 50)).toBeCloseTo(24, 5));
+  it('rect 300×200 px at scale 100 → 6 m² (default)', () => expect(calcArea(rect)).toBeCloseTo(6, 5));
 });

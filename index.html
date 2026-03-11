@@ -325,6 +325,11 @@
   <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
 
   <div class="sep"></div>
+  <button class="tool-btn" id="import-bg-btn" title="Import background image (blueprint/map)">Import</button>
+  <input type="file" id="bg-file-input" accept="image/*" style="display:none">
+  <button class="tool-btn" data-tool="calibrate" title="Calibrate scale by clicking two known points">Calibrate</button>
+
+  <div class="sep"></div>
   <label class="toggle-wrap" title="Show/hide CC spacing rings">
     <input type="checkbox" id="rings-toggle" checked>
     <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -343,6 +348,7 @@
 
   <div id="canvas-container">
     <svg id="canvas" width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+      <g id="bg-layer"></g>
       <g id="grid-layer"></g>
       <g id="shapes-layer"></g>
       <g id="markers-layer"></g>
@@ -376,8 +382,17 @@
   </div>
 </div>
 
+<div id="calib-overlay" style="display:none; position:fixed; background:#fff; border:1px solid #999;
+     border-radius:6px; padding:8px 12px; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+  <label style="font-size:13px;">Distance (m):
+    <input id="calib-input" type="number" min="0.01" step="0.01" style="width:70px;">
+  </label>
+  <button id="calib-ok">OK</button>
+  <button id="calib-cancel">Cancel</button>
+</div>
+
 <div id="status-bar">
-  <span>Scale: 1 m = 100 px</span>
+  <span id="scale-info">Scale: 1 m = 100 px</span>
   <span>|</span>
   <span>Canvas: 9 m &times; 6 m</span>
   <span id="status-msg"></span>

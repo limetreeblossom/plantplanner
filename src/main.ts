@@ -1,7 +1,7 @@
 import { PLANTS } from './plants';
 import {
   SCALE, CANVAS_W, CANVAS_H,
-  pxToM, fmt, calcArea, shapeCentroid, pointInShape,
+  pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale,
 } from './geometry';
 import type { ShapeData, LabelEl, PlantMarker, Plant } from './types';
 
@@ -20,6 +20,7 @@ let colorIndex = 0;
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const svgEl          = document.getElementById('canvas') as SVGSVGElement;
+const bgLayer        = document.getElementById('bg-layer') as SVGGElement;
 const shapesLayer    = document.getElementById('shapes-layer') as SVGGElement;
 const markersLayer   = document.getElementById('markers-layer') as SVGGElement;
 const labelLayer     = document.getElementById('label-layer') as SVGGElement;
@@ -29,9 +30,16 @@ const summaryContent = document.getElementById('summary-content') as HTMLDivElem
 const deleteBtn      = document.getElementById('delete-btn') as HTMLButtonElement;
 const statusMsg      = document.getElementById('status-msg') as HTMLSpanElement;
 const plantListEl    = document.getElementById('plant-list') as HTMLDivElement;
+const importBgBtn    = document.getElementById('import-bg-btn') as HTMLButtonElement;
+const bgFileInput    = document.getElementById('bg-file-input') as HTMLInputElement;
+const calibOverlay   = document.getElementById('calib-overlay') as HTMLDivElement;
+const calibInput     = document.getElementById('calib-input') as HTMLInputElement;
+const calibOkBtn     = document.getElementById('calib-ok') as HTMLButtonElement;
+const calibCancelBtn = document.getElementById('calib-cancel') as HTMLButtonElement;
+const scaleInfo      = document.getElementById('scale-info') as HTMLSpanElement;
 
 // ── State ──────────────────────────────────────────────────────────────────
-type Tool = 'select' | 'rect' | 'circle' | 'ellipse';
+type Tool = 'select' | 'rect' | 'circle' | 'ellipse' | 'calibrate';
 let currentTool: Tool = 'select';
 let drawing   = false;
 let startX    = 0;
@@ -40,12 +48,25 @@ let activeEl: SVGElement | null = null;
 let selectedData: ShapeData | null = null;
 let shapes: ShapeData[] = [];
 
-// ── Grid ───────────────────────────────────────────────────────────────────
-function drawGrid(): void {
-  const g = document.getElementById('grid-layer') as SVGGElement;
+// Phase 3 — background image & scale calibration
+let sessionScale = SCALE;
+let bgImageEl: SVGImageElement | null = null;
+let bgX = 0, bgY = 0;
+let calibPts: Array<{x: number, y: number}> = [];
+let calibMarkers: SVGCircleElement[] = [];
+let calibLineEl: SVGLineElement | null = null;
+let movingBg = false;
+let moveBgStartX = 0, moveBgStartY = 0;
+let moveBgOrigX  = 0, moveBgOrigY  = 0;
 
+// ── Grid ───────────────────────────────────────────────────────────────────
+function drawGrid(scale = SCALE): void {
+  const g = document.getElementById('grid-layer') as SVGGElement;
+  g.innerHTML = ''; // clear before (re)draw
+
+  const step = Math.max(1, Math.round(scale)); // integer px per metre for major lines
   for (let x = 0; x <= CANVAS_W; x += 50) {
-    const major = x % SCALE === 0;
+    const major = x > 0 && x % step === 0;
     const ln = document.createElementNS(NS, 'line');
     ln.setAttribute('x1', String(x)); ln.setAttribute('y1', '0');
     ln.setAttribute('x2', String(x)); ln.setAttribute('y2', String(CANVAS_H));
@@ -54,7 +75,7 @@ function drawGrid(): void {
     g.appendChild(ln);
   }
   for (let y = 0; y <= CANVAS_H; y += 50) {
-    const major = y % SCALE === 0;
+    const major = y > 0 && y % step === 0;
     const ln = document.createElementNS(NS, 'line');
     ln.setAttribute('x1', '0'); ln.setAttribute('y1', String(y));
     ln.setAttribute('x2', String(CANVAS_W)); ln.setAttribute('y2', String(y));
@@ -62,16 +83,16 @@ function drawGrid(): void {
     ln.setAttribute('stroke-width', major ? '1' : '0.5');
     g.appendChild(ln);
   }
-  for (let m = 1; m * SCALE <= CANVAS_W; m++) {
+  for (let m = 1; m * scale <= CANVAS_W; m++) {
     const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', String(m * SCALE)); txt.setAttribute('y', '11');
+    txt.setAttribute('x', String(Math.round(m * scale))); txt.setAttribute('y', '11');
     txt.setAttribute('text-anchor', 'middle');
     txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
     txt.textContent = m + 'm'; g.appendChild(txt);
   }
-  for (let m = 1; m * SCALE <= CANVAS_H; m++) {
+  for (let m = 1; m * scale <= CANVAS_H; m++) {
     const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', '4'); txt.setAttribute('y', String(m * SCALE + 4));
+    txt.setAttribute('x', '4'); txt.setAttribute('y', String(Math.round(m * scale) + 4));
     txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
     txt.textContent = m + 'm'; g.appendChild(txt);
   }
@@ -143,7 +164,7 @@ function updateLabelEl(d: ShapeData): void {
   const count = d.plantMarkers.length;
   const line1 = count > 0
     ? count + (count === 1 ? ' plant' : ' plants')
-    : fmt(calcArea(d)) + ' m²';
+    : fmt(calcArea(d, sessionScale)) + ' m²';
 
   const pad = 4, lineH = 13;
   const totalH = lineH + pad * 2;
@@ -179,7 +200,7 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   const ring = document.createElementNS(NS, 'circle') as SVGCircleElement;
   ring.setAttribute('cx', String(x));
   ring.setAttribute('cy', String(y));
-  ring.setAttribute('r', String((plant.spacing / 2) * SCALE));
+  ring.setAttribute('r', String((plant.spacing / 2) * sessionScale));
   ring.setAttribute('fill', 'none');
   ring.setAttribute('stroke', plant.color);
   ring.setAttribute('stroke-width', '1');
@@ -224,7 +245,7 @@ function updateInfoPanel(d: ShapeData | null): void {
   }
   deleteBtn.disabled = false;
 
-  const area = calcArea(d);
+  const area = calcArea(d, sessionScale);
   let dimRows = '';
 
   if (d.type === 'rect') {
@@ -233,10 +254,10 @@ function updateInfoPanel(d: ShapeData | null): void {
         <span class="info-label">Type</span><span class="info-value">Rectangle</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.w))} m</span>
+        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.w, sessionScale))} m</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.h))} m</span>
+        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.h, sessionScale))} m</span>
       </div>`;
   } else if (d.type === 'circle') {
     dimRows = `
@@ -244,10 +265,10 @@ function updateInfoPanel(d: ShapeData | null): void {
         <span class="info-label">Type</span><span class="info-value">Circle</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Radius</span><span class="info-value">${fmt(pxToM(d.r))} m</span>
+        <span class="info-label">Radius</span><span class="info-value">${fmt(pxToM(d.r, sessionScale))} m</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Diameter</span><span class="info-value">${fmt(pxToM(d.r) * 2)} m</span>
+        <span class="info-label">Diameter</span><span class="info-value">${fmt(pxToM(d.r, sessionScale) * 2)} m</span>
       </div>`;
   } else if (d.type === 'ellipse') {
     dimRows = `
@@ -255,10 +276,10 @@ function updateInfoPanel(d: ShapeData | null): void {
         <span class="info-label">Type</span><span class="info-value">Ellipse</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.rx) * 2)} m</span>
+        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.rx, sessionScale) * 2)} m</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry) * 2)} m</span>
+        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry, sessionScale) * 2)} m</span>
       </div>`;
   }
 
@@ -354,8 +375,59 @@ ringsToggle.addEventListener('change', () => {
   document.body.classList.toggle('hide-rings', !ringsToggle.checked);
 });
 
+// ── Scale calibration ──────────────────────────────────────────────────────
+function clearCalibration(): void {
+  calibPts = [];
+  for (const c of calibMarkers) overlayLayer.removeChild(c);
+  calibMarkers = [];
+  if (calibLineEl) { overlayLayer.removeChild(calibLineEl); calibLineEl = null; }
+  calibOverlay.style.display = 'none';
+}
+
+function applyCalibration(): void {
+  const realM = parseFloat(calibInput.value);
+  if (!isNaN(realM) && realM > 0 && calibPts.length === 2) {
+    sessionScale = calcScale(calibPts[0].x, calibPts[0].y, calibPts[1].x, calibPts[1].y, realM);
+    scaleInfo.textContent = `Scale: 1 m = ${Math.round(sessionScale)} px`;
+    drawGrid(sessionScale);
+    for (const s of shapes) updateLabelEl(s);
+    if (selectedData) updateInfoPanel(selectedData);
+    statusMsg.textContent = `Scale calibrated: 1 m = ${fmt(sessionScale, 1)} px`;
+  }
+  clearCalibration();
+  setTool('select');
+}
+
+calibOkBtn.addEventListener('click', applyCalibration);
+calibInput.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') applyCalibration(); });
+calibCancelBtn.addEventListener('click', () => { clearCalibration(); setTool('select'); });
+
+// ── Background image import ────────────────────────────────────────────────
+importBgBtn.addEventListener('click', () => bgFileInput.click());
+bgFileInput.addEventListener('change', () => {
+  const file = bgFileInput.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    if (bgImageEl) bgLayer.removeChild(bgImageEl);
+    bgImageEl = document.createElementNS(NS, 'image') as SVGImageElement;
+    bgImageEl.setAttribute('href', ev.target!.result as string);
+    bgX = 0; bgY = 0;
+    bgImageEl.setAttribute('x', '0');
+    bgImageEl.setAttribute('y', '0');
+    bgImageEl.setAttribute('width',  String(CANVAS_W));
+    bgImageEl.setAttribute('height', String(CANVAS_H));
+    bgImageEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    bgLayer.appendChild(bgImageEl);
+    statusMsg.textContent = 'Image imported. Use Calibrate to set scale.';
+  };
+  reader.readAsDataURL(file);
+  bgFileInput.value = '';
+});
+
 // ── Tool switching ─────────────────────────────────────────────────────────
 function setTool(name: Tool): void {
+  if (name !== 'calibrate') clearCalibration();
   currentTool = name;
   document.querySelectorAll('.tool-btn').forEach(b => {
     (b as HTMLElement).classList.toggle('active', (b as HTMLElement).dataset['tool'] === name);
@@ -463,7 +535,49 @@ function nextColor(): { fill: string; stroke: string } {
 svgEl.addEventListener('mousedown', (e: MouseEvent) => {
   if ((e.target as Element).closest('[data-marker]')) return;
 
+  // Calibrate mode: collect two click points
+  if (currentTool === 'calibrate') {
+    if (calibPts.length >= 2) return; // wait for overlay
+    const pt = svgCoords(e);
+    const dot = document.createElementNS(NS, 'circle') as SVGCircleElement;
+    dot.setAttribute('cx', String(pt.x)); dot.setAttribute('cy', String(pt.y));
+    dot.setAttribute('r', '5'); dot.setAttribute('fill', '#f44336'); dot.setAttribute('stroke', '#fff');
+    dot.setAttribute('stroke-width', '1.5');
+    dot.style.pointerEvents = 'none';
+    overlayLayer.appendChild(dot);
+    calibMarkers.push(dot);
+    calibPts.push(pt);
+
+    if (calibPts.length === 1) {
+      statusMsg.textContent = 'Click second point…';
+    } else {
+      calibLineEl = document.createElementNS(NS, 'line') as SVGLineElement;
+      calibLineEl.setAttribute('x1', String(calibPts[0].x)); calibLineEl.setAttribute('y1', String(calibPts[0].y));
+      calibLineEl.setAttribute('x2', String(pt.x)); calibLineEl.setAttribute('y2', String(pt.y));
+      calibLineEl.setAttribute('stroke', '#f44336'); calibLineEl.setAttribute('stroke-dasharray', '6,4');
+      calibLineEl.setAttribute('stroke-width', '2');
+      calibLineEl.style.pointerEvents = 'none';
+      overlayLayer.appendChild(calibLineEl);
+      const svgRect = svgEl.getBoundingClientRect();
+      calibOverlay.style.left = (svgRect.left + (calibPts[0].x + pt.x) / 2) + 'px';
+      calibOverlay.style.top  = (svgRect.top  + (calibPts[0].y + pt.y) / 2 - 20) + 'px';
+      calibOverlay.style.display = 'block';
+      calibInput.value = '';
+      calibInput.focus();
+      statusMsg.textContent = 'Enter real-world distance and press OK.';
+    }
+    return;
+  }
+
+  // Select mode: move bg image if clicking it, else select a shape
   if (currentTool === 'select') {
+    if (e.target === bgImageEl) {
+      movingBg = true;
+      const pt = svgCoords(e);
+      moveBgStartX = pt.x; moveBgStartY = pt.y;
+      moveBgOrigX  = bgX;  moveBgOrigY  = bgY;
+      return;
+    }
     const hit = (e.target as Element).closest('[data-shape]');
     selectShape(hit ? findShapeByEl(hit) : null);
     return;
@@ -503,6 +617,14 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
 });
 
 svgEl.addEventListener('mousemove', (e: MouseEvent) => {
+  if (movingBg && bgImageEl) {
+    const pt = svgCoords(e);
+    bgX = moveBgOrigX + (pt.x - moveBgStartX);
+    bgY = moveBgOrigY + (pt.y - moveBgStartY);
+    bgImageEl.setAttribute('x', String(bgX));
+    bgImageEl.setAttribute('y', String(bgY));
+    return;
+  }
   if (!drawing || !activeEl) return;
   const p = svgCoords(e);
 
@@ -511,24 +633,25 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
     const w = Math.abs(p.x - startX),  h = Math.abs(p.y - startY);
     activeEl.setAttribute('x', String(x)); activeEl.setAttribute('y', String(y));
     activeEl.setAttribute('width', String(w)); activeEl.setAttribute('height', String(h));
-    updateDimLabel(x + w / 2, y - 12, `${fmt(pxToM(w))} × ${fmt(pxToM(h))} m`);
+    updateDimLabel(x + w / 2, y - 12, `${fmt(pxToM(w, sessionScale))} × ${fmt(pxToM(h, sessionScale))} m`);
 
   } else if (currentTool === 'circle') {
     const dx = p.x - startX, dy = p.y - startY;
     const r = Math.sqrt(dx * dx + dy * dy);
     activeEl.setAttribute('r', String(r));
-    updateDimLabel(startX, startY - r - 14, `r = ${fmt(pxToM(r))} m`);
+    updateDimLabel(startX, startY - r - 14, `r = ${fmt(pxToM(r, sessionScale))} m`);
 
   } else if (currentTool === 'ellipse') {
     const rx = Math.abs(p.x - startX) / 2, ry = Math.abs(p.y - startY) / 2;
     const cx = (startX + p.x) / 2,          cy = (startY + p.y) / 2;
     activeEl.setAttribute('cx', String(cx)); activeEl.setAttribute('cy', String(cy));
     activeEl.setAttribute('rx', String(rx)); activeEl.setAttribute('ry', String(ry));
-    updateDimLabel(cx, cy - ry - 14, `${fmt(pxToM(rx * 2))} × ${fmt(pxToM(ry * 2))} m`);
+    updateDimLabel(cx, cy - ry - 14, `${fmt(pxToM(rx * 2, sessionScale))} × ${fmt(pxToM(ry * 2, sessionScale))} m`);
   }
 });
 
 document.addEventListener('mouseup', () => {
+  if (movingBg) { movingBg = false; return; }
   if (!drawing || !activeEl) return;
   drawing = false;
   hideDimLabel();

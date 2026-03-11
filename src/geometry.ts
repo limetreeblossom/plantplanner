@@ -4,19 +4,25 @@ export const SCALE    = 100; // pixels per metre
 export const CANVAS_W = 900;
 export const CANVAS_H = 600;
 
-export function pxToM(px: number): number {
-  return px / SCALE;
+export function pxToM(px: number, scale = SCALE): number {
+  return px / scale;
 }
 
 export function fmt(m: number, dp = 2): string {
   return m.toFixed(dp);
 }
 
-export function calcArea(d: ShapeData): number {
-  if (d.type === 'rect')    return pxToM(d.w) * pxToM(d.h);
-  if (d.type === 'circle')  return Math.PI * pxToM(d.r) ** 2;
-  if (d.type === 'ellipse') return Math.PI * pxToM(d.rx) * pxToM(d.ry);
+export function calcArea(d: ShapeData, scale = SCALE): number {
+  if (d.type === 'rect')    return pxToM(d.w, scale) * pxToM(d.h, scale);
+  if (d.type === 'circle')  return Math.PI * pxToM(d.r, scale) ** 2;
+  if (d.type === 'ellipse') return Math.PI * pxToM(d.rx, scale) * pxToM(d.ry, scale);
   return 0;
+}
+
+export function calcScale(x1: number, y1: number, x2: number, y2: number, realM: number): number {
+  if (realM <= 0) return SCALE;
+  const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  return dist / realM;
 }
 
 export function shapeCentroid(d: ShapeData): { x: number; y: number } {
