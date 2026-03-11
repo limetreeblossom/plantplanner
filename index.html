@@ -68,6 +68,45 @@
     #delete-btn:hover:not(:disabled) { background: #ffebee; }
     #delete-btn:disabled { opacity: 0.35; cursor: default; }
 
+    /* Hide spacing rings when toggled off */
+    body.hide-rings .spacing-ring { display: none; }
+
+    /* ── CC toggle switch ── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.82rem;
+      color: #555;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .toggle-wrap input { display: none; }
+
+    .toggle-track {
+      width: 30px;
+      height: 17px;
+      background: #ccc;
+      border-radius: 9px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 13px;
+      height: 13px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: left 0.2s;
+    }
+    .toggle-wrap input:checked + .toggle-track { background: #43a047; }
+    .toggle-wrap input:checked + .toggle-track .toggle-thumb { left: 15px; }
+
     /* ── Workspace ── */
     #workspace {
       flex: 1;
@@ -284,6 +323,13 @@
   <button class="tool-btn" data-tool="rect"    title="Rectangle (R)">Rectangle</button>
   <button class="tool-btn" data-tool="circle"  title="Circle (C)">Circle</button>
   <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
+
+  <div class="sep"></div>
+  <label class="toggle-wrap" title="Show/hide CC spacing rings">
+    <input type="checkbox" id="rings-toggle" checked>
+    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    <span>CC</span>
+  </label>
 
   <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
 </div>
@@ -584,6 +630,7 @@
     ring.setAttribute('stroke-dasharray', '4 3');
     ring.setAttribute('opacity', '0.5');
     ring.style.pointerEvents = 'none';
+    ring.classList.add('spacing-ring');
 
     const circle = document.createElementNS(NS, 'circle');
     circle.setAttribute('cx', x);
@@ -745,6 +792,12 @@
 
   deleteBtn.addEventListener('click', deleteSelected);
 
+  // ── CC spacing rings toggle ────────────────────────────────────────────────
+  const ringsToggle = document.getElementById('rings-toggle');
+  ringsToggle.addEventListener('change', () => {
+    document.body.classList.toggle('hide-rings', !ringsToggle.checked);
+  });
+
   // ── Tool switching ─────────────────────────────────────────────────────────
   function setTool(name) {
     currentTool = name;
@@ -777,7 +830,7 @@
       chip.draggable = true;
       chip.innerHTML = `
         <span class="chip-swatch" style="background:${plant.color}"></span>
-        <span>${plant.name}</span>
+        <span>${plant.name} (${plant.spacing} m)</span>
       `;
       chip.addEventListener('dragstart', e => {
         e.dataTransfer.setData('plantIndex', i);
