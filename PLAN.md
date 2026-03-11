@@ -72,24 +72,34 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 
 ---
 
-### ⚑ Prototype validation checkpoint
+### ⚑ Prototype validation checkpoint ✅
 
-Before proceeding to Phase 3, validate that the core UX feels right. Then:
-- Refactor pure logic (area calculation, density formula, data model) into separate `.js` modules
-- These modules become the target for test coverage going forward
-- **All phases from here use a test-first (TDD) approach**
+Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geometry.ts`; UI in `src/main.ts`. Introduced TypeScript, Vite, Vitest. 34 tests passing. TDD applies from Phase 3 onwards.
 
 ---
 
-### Phase 3 — Plant Database Management
+### Phase 3 — Image Background & Scale Calibration
+**Approach: TDD for scale logic; lightweight for UI**
+
+- Import an image file (JPEG, PNG, SVG) to use as a background on the canvas
+- The image is rendered below all shapes and markers (in a dedicated background layer)
+- After importing, the user sets the scale by clicking two points on the image and entering the real-world distance between them
+- This calibration updates `SCALE` (px/m) for the session so that shapes drawn on top reflect the correct real-world dimensions
+- The image can be repositioned and the scale can be recalibrated at any time
+- Scale calibration logic is pure and unit-tested
+
+**Done when:** Import a blueprint, click two known points, enter "5 m", draw a rectangle — its area reflects the calibrated scale
+
+---
+
+### Phase 4 — Plant Database Management
 **Approach: TDD**
 
-- Load plant data from `plants.json`
 - UI panel to add, edit, and delete plants (name, spacing, colour swatch)
-- Support manual override of plant count per shape
-- Spec the plant CRUD operations and density calculations before implementing
+- Changes are reflected immediately in the left sidebar palette
+- Spec the plant CRUD operations before implementing
 
-**Done when:** Add a custom plant, assign it, and manually override its count in one bed
+**Done when:** Add a custom plant, drag it onto a bed, see it in the summary
 
 ---
 
@@ -105,18 +115,29 @@ Before proceeding to Phase 3, validate that the core UX feels right. Then:
 
 ---
 
-### Phase 5 — Polish & UX
-**Approach: TDD for logic, lightweight for UI**
+### Phase 5 — Save / Load / Export
+**Approach: TDD**
 
-- Grid overlay with snap-to-grid
-- Zoom and pan the canvas
-- Undo/redo (command pattern)
-- Keyboard shortcuts
+- Save full design as `.json` (shapes + placed markers + plant database + background image reference)
+- Load a `.json` file to restore a design
+- Export plant summary to CSV
+- Export a printable PDF with canvas image + plant list table
+
+**Done when:** Full round-trip — design → save → reload → export PDF
 
 ---
 
-### Phase 6 (Future) — Shape Templates
-_Deferred — revisit after Phase 5 is complete._
+### Phase 6 — Polish & UX
+**Approach: TDD for logic, lightweight for UI**
+
+- Zoom and pan the canvas
+- Undo/redo (command pattern)
+- Snap-to-grid (optional, relative to calibrated scale)
+
+---
+
+### Phase 7 (Future) — Shape Templates
+_Deferred — revisit after Phase 6 is complete._
 
 - Pre-defined shapes: L-shape, kidney, border strip
 - Templates are polygon/path presets dropped onto the canvas
