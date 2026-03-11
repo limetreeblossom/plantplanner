@@ -573,6 +573,18 @@
     const textFill   = isDark ? '#fff' : '#555';
     const strokeColor = isDark ? '#fff' : '#aaa';
 
+    // Dashed spacing ring (radius = half the cc distance)
+    const ring = document.createElementNS(NS, 'circle');
+    ring.setAttribute('cx', x);
+    ring.setAttribute('cy', y);
+    ring.setAttribute('r', (plant.spacing / 2) * SCALE);
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', plant.color);
+    ring.setAttribute('stroke-width', '1');
+    ring.setAttribute('stroke-dasharray', '4 3');
+    ring.setAttribute('opacity', '0.5');
+    ring.style.pointerEvents = 'none';
+
     const circle = document.createElementNS(NS, 'circle');
     circle.setAttribute('cx', x);
     circle.setAttribute('cy', y);
@@ -593,6 +605,7 @@
     text.style.pointerEvents = 'none';
     text.textContent = plant.name.charAt(0).toUpperCase();
 
+    g.appendChild(ring);
     g.appendChild(circle);
     g.appendChild(text);
     markersLayer.appendChild(g);

@@ -59,8 +59,9 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 - Shape label shows placed count ("N plants") or area if empty
 - Right panel shows placed count for selected shape
 - Running plant summary with color swatches
+- Dashed spacing ring around each marker showing the cc planting distance (radius = spacing / 2)
 
-**Done when:** Drag "Rose" onto a bed → R dot appears at drop position; summary updates
+**Done when:** Drag "Rose" onto a bed → R dot with dashed ring appears; ring radius = 25 cm (half of 0.5 m spacing)
 
 ---
 
