@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import { PLANTS } from './plants';
 import {
   SCALE, CANVAS_W, CANVAS_H,
@@ -888,6 +889,33 @@ document.addEventListener('mouseup', () => {
   setTool('select');
   selectShape(d);
 });
+
+// ── XLS export ─────────────────────────────────────────────────────────────
+function exportXlsx(): void {
+  const totals: Record<string, { count: number; spacing: number }> = {};
+  for (const d of shapes) {
+    for (const m of d.plantMarkers) {
+      const n = m.plant.name;
+      if (!totals[n]) totals[n] = { count: 0, spacing: m.plant.spacing };
+      totals[n].count++;
+    }
+  }
+
+  const rows: (string | number)[][] = [['Plant', 'Spacing (m)', 'Count']];
+  let grandTotal = 0;
+  for (const [name, { count, spacing }] of Object.entries(totals)) {
+    rows.push([name, spacing, count]);
+    grandTotal += count;
+  }
+  rows.push(['Total', '', grandTotal]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Plant Summary');
+  XLSX.writeFile(wb, 'plant-summary.xlsx');
+}
+
+document.getElementById('export-xls-btn')!.addEventListener('click', exportXlsx);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 drawGrid();
