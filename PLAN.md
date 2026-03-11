@@ -12,8 +12,9 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 - **TypeScript + Vite + Vitest** — strict TypeScript, Vite for dev server and build, Vitest for tests
 - **SVG** for the drawing canvas — shapes are objects (not pixels), enabling click-to-select without redrawing
 - **Plain SVG + DOM** for the object model layer — no Fabric.js
-- **jsPDF** for PDF export (Phase 4)
-- **CSV export** via a Blob download, no library needed (Phase 4)
+- **SheetJS (xlsx)** for XLS export (added in Phase 3 iteration)
+- **jsPDF** for PDF export (Phase 5)
+- **JSON** save/load, no library needed (Phase 5)
 
 ### Module structure
 - `src/types.ts` — shared TypeScript interfaces (`Plant`, `PlantMarker`, `ShapeData` discriminated union, `LabelEl`)
@@ -78,17 +79,18 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 
 ---
 
-### Phase 3 — Image Background & Scale Calibration
+### Phase 3 — Image Background & Scale Calibration ✅
 **Approach: TDD for scale logic; lightweight for UI**
 
-- Import an image file (JPEG, PNG, SVG) to use as a background on the canvas
-- The image is rendered below all shapes and markers (in a dedicated background layer)
-- After importing, the user sets the scale by clicking two points on the image and entering the real-world distance between them
-- This calibration updates `SCALE` (px/m) for the session so that shapes drawn on top reflect the correct real-world dimensions
-- The image can be repositioned and the scale can be recalibrated at any time
-- Scale calibration logic is pure and unit-tested
-
-**Done when:** Import a blueprint, click two known points, enter "5 m", draw a rectangle — its area reflects the calibrated scale
+- Import an image file (JPEG, PNG, SVG) as a background layer below all shapes
+- Calibrate scale by clicking two points on the image and entering the real-world distance
+- `sessionScale` (px/m) updates for the session; all geometry reflects the new scale
+- Image can be repositioned by dragging in Select mode; scale can be recalibrated at any time
+- Grid redraws at 1m major / 0.5m minor intervals matching `sessionScale`
+- Polygon shape tool: click to place vertices, snap-to-first-vertex to close, self-intersection guard
+- Visibility toggles for CC rings, grid, and background image
+- XLS export of plant summary (SheetJS)
+- `calcScale` pure function unit-tested
 
 ---
 
@@ -103,24 +105,11 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 
 ---
 
-### Phase 4 — Save / Load / Export
-**Approach: TDD**
-
-- Save full design as `.json` (shapes + assignments + plant database)
-- Load a `.json` file to restore a design
-- Export plant summary to CSV
-- Export a printable PDF with canvas image + plant list table
-
-**Done when:** Full round-trip — design → save → reload → export PDF
-
----
-
 ### Phase 5 — Save / Load / Export
 **Approach: TDD**
 
 - Save full design as `.json` (shapes + placed markers + plant database + background image reference)
 - Load a `.json` file to restore a design
-- Export plant summary to CSV
 - Export a printable PDF with canvas image + plant list table
 
 **Done when:** Full round-trip — design → save → reload → export PDF
@@ -156,7 +145,7 @@ _Deferred — revisit after Phase 6 is complete._
 | Scope per design | One flowerbed at a time |
 | Plant database | Hardcoded in `src/plants.ts`, user-extendable via UI in Phase 3 |
 | Save format | JSON file download/upload |
-| Output | On-screen list + CSV export + PDF export |
+| Output | On-screen list + XLS export + PDF export (Phase 5) |
 | Devices | Desktop with mouse |
 | Framework | Vite (dev/build), Vitest (tests), TypeScript |
 | Testing | None for Phases 1–2; TDD from Phase 3 onwards |
@@ -171,10 +160,11 @@ _Deferred — revisit after Phase 6 is complete._
 | 1 — Canvas & Shapes | ✅ Complete |
 | 2 — Plant Placement  | ✅ Complete |
 | ⚑ Prototype checkpoint | ✅ Complete |
-| 3 — Plant Database | ⬜ Not started |
-| 4 — Save / Load / Export | ⬜ Not started |
-| 5 — Polish & UX | ⬜ Not started |
-| 6 — Templates (deferred) | ⏸ Deferred |
+| 3 — Image Background & Scale Calibration | ✅ Complete |
+| 4 — Plant Database Management | ⬜ Not started |
+| 5 — Save / Load / Export | ⬜ Not started |
+| 6 — Polish & UX | ⬜ Not started |
+| 7 — Templates (deferred) | ⏸ Deferred |
 
 ---
 
@@ -186,3 +176,4 @@ _Update this section as phases complete or decisions change._
 - **2026-03-11** — Phase 1 complete. Single `index.html`, SVG canvas with grid, draw rect/circle/ellipse, select/delete, info panel with real-world dimensions and area.
 - **2026-03-11** — Phase 2 revised and re-implemented. Replaced dropdown/hex-packing system with individual plant placement: left sidebar palette, drag-and-drop markers (colored dot + initial) onto shapes, click-to-delete markers, updated summary with color swatches.
 - **2026-03-11** — Prototype checkpoint complete. Introduced Vite + Vitest + TypeScript. Extracted pure logic into `src/types.ts`, `src/plants.ts`, `src/geometry.ts`; UI code moved to `src/main.ts`. 34 tests, all passing.
+- **2026-03-11** — Phase 3 complete. Background image import (JPEG/PNG/SVG) in dedicated SVG layer; drag to reposition. Scale calibration via two-click + distance entry, updates `sessionScale` and redraws grid. Polygon shape tool with snap-to-close and self-intersection guard. Adaptive grid (1m major / 0.5m minor, recalculates on calibration). Visibility toggles for CC rings, grid, and background image. XLS export of plant summary via SheetJS. 58 tests passing.
