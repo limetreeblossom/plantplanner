@@ -63,7 +63,7 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 - Left sidebar palette listing all plants as draggable chips
 - Drag a plant chip onto a shape to place a colored marker dot at the drop position
 - Markers only land inside a shape (drops outside shapes are ignored)
-- Click a marker in Select mode to delete it
+- Click a marker in Select mode to select it (highlighted); delete with Delete key or Delete button (same as shapes)
 - Shape label shows placed count ("N plants") or area if empty
 - Right panel shows placed count for selected shape
 - Running plant summary with color swatches
@@ -90,6 +90,9 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 - Polygon shape tool: click to place vertices, snap-to-first-vertex to close, self-intersection guard
 - Visibility toggles for CC rings, grid, and background image
 - XLS export of plant summary (SheetJS)
+- Drag to move shapes in Select mode (translates shape, all its markers, and the label)
+- Drag to reposition individual plant markers within or across shapes
+- Unified marker selection model: click to select, Delete to remove (no more instant-delete on click)
 - `calcScale` pure function unit-tested
 
 ---
@@ -177,3 +180,4 @@ _Update this section as phases complete or decisions change._
 - **2026-03-11** — Phase 2 revised and re-implemented. Replaced dropdown/hex-packing system with individual plant placement: left sidebar palette, drag-and-drop markers (colored dot + initial) onto shapes, click-to-delete markers, updated summary with color swatches.
 - **2026-03-11** — Prototype checkpoint complete. Introduced Vite + Vitest + TypeScript. Extracted pure logic into `src/types.ts`, `src/plants.ts`, `src/geometry.ts`; UI code moved to `src/main.ts`. 34 tests, all passing.
 - **2026-03-11** — Phase 3 complete. Background image import (JPEG/PNG/SVG) in dedicated SVG layer; drag to reposition. Scale calibration via two-click + distance entry, updates `sessionScale` and redraws grid. Polygon shape tool with snap-to-close and self-intersection guard. Adaptive grid (1m major / 0.5m minor, recalculates on calibration). Visibility toggles for CC rings, grid, and background image. XLS export of plant summary via SheetJS. 58 tests passing.
+- **2026-03-11** — Phase 3 iteration. Drag-to-move shapes in Select mode (shape, markers, and label translate together). Drag-to-move individual plant markers. Unified selection model for markers: click to select (highlighted stroke), Delete key/button to remove — replaces instant click-to-delete.

@@ -67,6 +67,22 @@ let movingBg = false;
 let moveBgStartX = 0, moveBgStartY = 0;
 let moveBgOrigX  = 0, moveBgOrigY  = 0;
 
+// Marker selection
+let selectedMarker: PlantMarker | null = null;
+let selectedMarkerShape: ShapeData | null = null;
+
+// Shape / marker dragging
+let draggingShape:  ShapeData   | null = null;
+let draggingMarker: PlantMarker | null = null;
+let dragMouseStartX = 0, dragMouseStartY = 0;
+// Snapshot of shape origin at drag start (type-specific)
+let dragShapeOrigRectX = 0, dragShapeOrigRectY = 0;
+let dragShapeOrigCx    = 0, dragShapeOrigCy    = 0;
+let dragShapeOrigPoints: Array<{ x: number; y: number }> = [];
+let dragShapeMarkersOrig: Array<{ x: number; y: number }> = [];
+// Snapshot of marker origin at drag start
+let dragMarkerOrigX = 0, dragMarkerOrigY = 0;
+
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
   const g = document.getElementById('grid-layer') as SVGGElement;
@@ -378,7 +394,32 @@ const SEL_STROKE = '#1565c0';
 const SEL_SW     = '3';
 const DEF_SW     = '1.5';
 
+function deselectMarker(): void {
+  if (!selectedMarker) return;
+  const circles = selectedMarker.el.querySelectorAll('circle');
+  if (circles[1]) circles[1].setAttribute('stroke-width', '1.5');
+  selectedMarker = null;
+  selectedMarkerShape = null;
+}
+
+function selectMarker(m: PlantMarker, shape: ShapeData): void {
+  deselectMarker();
+  // Deselect any active shape
+  if (selectedData) {
+    selectedData.el.setAttribute('stroke', selectedData.stroke);
+    selectedData.el.setAttribute('stroke-width', DEF_SW);
+    selectedData = null;
+    updateInfoPanel(null);
+  }
+  selectedMarker = m;
+  selectedMarkerShape = shape;
+  const circles = m.el.querySelectorAll('circle');
+  if (circles[1]) circles[1].setAttribute('stroke-width', '3');
+  deleteBtn.disabled = false;
+}
+
 function selectShape(d: ShapeData | null): void {
+  deselectMarker();
   if (selectedData) {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
@@ -391,12 +432,54 @@ function selectShape(d: ShapeData | null): void {
   updateInfoPanel(d);
 }
 
+// ── Drag helpers ────────────────────────────────────────────────────────────
+function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
+  m.x = x; m.y = y;
+  m.el.querySelectorAll('circle').forEach(c => {
+    c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y));
+  });
+  const t = m.el.querySelector('text');
+  if (t) { t.setAttribute('x', String(x)); t.setAttribute('y', String(y)); }
+}
+
+function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
+  if (d.type === 'rect') {
+    const x = dragShapeOrigRectX + dx, y = dragShapeOrigRectY + dy;
+    d.el.setAttribute('x', String(x)); d.el.setAttribute('y', String(y));
+    d.x = x; d.y = y;
+  } else if (d.type === 'circle' || d.type === 'ellipse') {
+    const cx = dragShapeOrigCx + dx, cy = dragShapeOrigCy + dy;
+    d.el.setAttribute('cx', String(cx)); d.el.setAttribute('cy', String(cy));
+    d.cx = cx; d.cy = cy;
+  } else if (d.type === 'polygon') {
+    const pts = dragShapeOrigPoints.map(p => ({ x: p.x + dx, y: p.y + dy }));
+    d.el.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    d.points = pts;
+  }
+  d.plantMarkers.forEach((m, i) => {
+    const o = dragShapeMarkersOrig[i];
+    moveMarkerEl(m, o.x + dx, o.y + dy);
+  });
+  updateLabelEl(d);
+}
+
 function findShapeByEl(el: Element): ShapeData | null {
   return shapes.find(s => s.el === el) ?? null;
 }
 
 // ── Deletion ───────────────────────────────────────────────────────────────
 function deleteSelected(): void {
+  if (selectedMarker && selectedMarkerShape) {
+    selectedMarker.el.remove();
+    const idx = selectedMarkerShape.plantMarkers.indexOf(selectedMarker);
+    if (idx !== -1) selectedMarkerShape.plantMarkers.splice(idx, 1);
+    updateLabelEl(selectedMarkerShape);
+    if (selectedData === selectedMarkerShape) updateInfoPanel(selectedMarkerShape);
+    updateSummary();
+    deselectMarker();
+    deleteBtn.disabled = true;
+    return;
+  }
   if (!selectedData) return;
   for (const m of selectedData.plantMarkers) m.el.remove();
   selectedData.el.remove();
@@ -644,26 +727,6 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   updateSummary();
 });
 
-// ── Marker click-to-delete ─────────────────────────────────────────────────
-markersLayer.addEventListener('click', (e: MouseEvent) => {
-  if (currentTool !== 'select') return;
-  const markerGroup = (e.target as Element).closest('[data-marker]') as SVGGElement | null;
-  if (!markerGroup) return;
-  e.stopPropagation();
-
-  for (const d of shapes) {
-    const idx = d.plantMarkers.findIndex(m => m.el === markerGroup);
-    if (idx !== -1) {
-      markerGroup.remove();
-      d.plantMarkers.splice(idx, 1);
-      updateLabelEl(d);
-      if (selectedData === d) updateInfoPanel(d);
-      updateSummary();
-      return;
-    }
-  }
-});
-
 // ── Drawing ────────────────────────────────────────────────────────────────
 function nextColor(): { fill: string; stroke: string } {
   const i = colorIndex % FILL_COLORS.length;
@@ -672,7 +735,28 @@ function nextColor(): { fill: string; stroke: string } {
 }
 
 svgEl.addEventListener('mousedown', (e: MouseEvent) => {
-  if ((e.target as Element).closest('[data-marker]')) return;
+  // ── Select mode: markers and shape drag ────────────────────────────────
+  if (currentTool === 'select') {
+    const markerGroup = (e.target as Element).closest('[data-marker]') as SVGGElement | null;
+    if (markerGroup) {
+      for (const d of shapes) {
+        const m = d.plantMarkers.find(pm => pm.el === markerGroup);
+        if (m) {
+          selectMarker(m, d);
+          const pt = svgCoords(e);
+          dragMouseStartX = pt.x; dragMouseStartY = pt.y;
+          draggingMarker = m;
+          dragMarkerOrigX = m.x; dragMarkerOrigY = m.y;
+          e.preventDefault();
+          return;
+        }
+      }
+      return;
+    }
+  } else {
+    // Non-select modes: ignore clicks on markers
+    if ((e.target as Element).closest('[data-marker]')) return;
+  }
 
   // Calibrate mode: collect two click points
   if (currentTool === 'calibrate') {
@@ -730,7 +814,7 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     return;
   }
 
-  // Select mode: move bg image if clicking it, else select a shape
+  // Select mode: move bg image / select+drag shape / deselect
   if (currentTool === 'select') {
     if (e.target === bgImageEl) {
       movingBg = true;
@@ -740,7 +824,17 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
       return;
     }
     const hit = (e.target as Element).closest('[data-shape]');
-    selectShape(hit ? findShapeByEl(hit) : null);
+    const d = hit ? findShapeByEl(hit) : null;
+    selectShape(d);
+    if (d) {
+      const pt = svgCoords(e);
+      dragMouseStartX = pt.x; dragMouseStartY = pt.y;
+      draggingShape = d;
+      if (d.type === 'rect')    { dragShapeOrigRectX = d.x; dragShapeOrigRectY = d.y; }
+      else if (d.type === 'circle' || d.type === 'ellipse') { dragShapeOrigCx = d.cx; dragShapeOrigCy = d.cy; }
+      else if (d.type === 'polygon') { dragShapeOrigPoints = d.points.map(p => ({ ...p })); }
+      dragShapeMarkersOrig = d.plantMarkers.map(m => ({ x: m.x, y: m.y }));
+    }
     return;
   }
 
@@ -793,6 +887,16 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
     if (segLen > 1) updateDimLabel(pt.x, pt.y - 16, fmt(pxToM(segLen, sessionScale)) + ' m');
     return;
   }
+  if (draggingShape) {
+    const pt = svgCoords(e);
+    moveShapeTo(draggingShape, pt.x - dragMouseStartX, pt.y - dragMouseStartY);
+    return;
+  }
+  if (draggingMarker) {
+    const pt = svgCoords(e);
+    moveMarkerEl(draggingMarker, dragMarkerOrigX + (pt.x - dragMouseStartX), dragMarkerOrigY + (pt.y - dragMouseStartY));
+    return;
+  }
   if (movingBg && bgImageEl) {
     const pt = svgCoords(e);
     bgX = moveBgOrigX + (pt.x - moveBgStartX);
@@ -827,6 +931,8 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
 });
 
 document.addEventListener('mouseup', () => {
+  draggingShape = null;
+  draggingMarker = null;
   if (movingBg) { movingBg = false; return; }
   if (!drawing || !activeEl) return;
   drawing = false;
