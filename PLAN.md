@@ -116,7 +116,16 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 
 ---
 
-### Phase 5 — Save / Load / Export
+### Phase 5 — Zoom & Pan ✅
+**Approach: lightweight for UI**
+
+- Scroll wheel to zoom toward cursor
+- Middle-click drag or Space+drag to pan
+- SVG viewBox manipulation — all content coordinates unchanged
+
+---
+
+### Phase 6 — Save / Load / Export
 **Approach: TDD**
 
 - Save full design as `.json` (shapes + placed markers + plant database + background image reference)
@@ -127,17 +136,16 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 
 ---
 
-### Phase 6 — Polish & UX
+### Phase 7 — Polish & UX
 **Approach: TDD for logic, lightweight for UI**
 
-- Zoom and pan the canvas
 - Undo/redo (command pattern)
 - Snap-to-grid (optional, relative to calibrated scale)
 
 ---
 
-### Phase 7 (Future) — Shape Templates
-_Deferred — revisit after Phase 6 is complete._
+### Phase 8 (Future) — Shape Templates
+_Deferred — revisit after Phase 7 is complete._
 
 - Pre-defined shapes: L-shape, kidney, border strip
 - Templates are polygon/path presets dropped onto the canvas
@@ -174,9 +182,10 @@ _Deferred — revisit after Phase 6 is complete._
 | 3 — Image Background & Scale Calibration | ✅ Complete |
 | 4a — Trefle data pipeline & search | ✅ Complete |
 | 4b — Plant DB management UI | ⬜ Not started |
-| 5 — Save / Load / Export | ⬜ Not started |
-| 6 — Polish & UX | ⬜ Not started |
-| 7 — Templates (deferred) | ⏸ Deferred |
+| 5 — Zoom & Pan | ✅ Complete |
+| 6 — Save / Load / Export | ⬜ Not started |
+| 7 — Polish & UX | ⬜ Not started |
+| 8 — Templates (deferred) | ⏸ Deferred |
 
 ---
 

@@ -87,6 +87,13 @@ let dragShapeMarkersOrig: Array<{ x: number; y: number }> = [];
 // Snapshot of marker origin at drag start
 let dragMarkerOrigX = 0, dragMarkerOrigY = 0;
 
+// ── Zoom / pan state ────────────────────────────────────────────────────────
+let vbX = 0, vbY = 0, vbW = CANVAS_W, vbH = CANVAS_H;
+let panning     = false;
+let panStartX   = 0, panStartY   = 0;   // screen px at pan start
+let panVbStartX = 0, panVbStartY = 0;   // viewBox origin at pan start
+let spaceDown   = false;
+
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
   const g = document.getElementById('grid-layer') as SVGGElement;
@@ -696,6 +703,7 @@ document.querySelectorAll('.tool-btn').forEach(b => {
 // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if ((e.target as HTMLElement).tagName === 'INPUT') return;
+  if (e.key === ' ') { spaceDown = true; svgEl.style.cursor = 'grab'; e.preventDefault(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelected(); return; }
   if (e.key === 's' || e.key === 'S') setTool('select');
   if (e.key === 'r' || e.key === 'R') setTool('rect');
@@ -703,6 +711,10 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'e' || e.key === 'E') setTool('ellipse');
   if (e.key === 'p' || e.key === 'P') setTool('polygon');
   if (e.key === 'Escape' && currentTool === 'polygon') { clearPolygon(); setTool('select'); }
+});
+
+document.addEventListener('keyup', (e: KeyboardEvent) => {
+  if (e.key === ' ') { spaceDown = false; if (!panning) svgEl.style.cursor = ''; }
 });
 
 // ── Plant palette (left panel) ─────────────────────────────────────────────
@@ -822,10 +834,36 @@ function renderSearchResults(plants: Plant[]): void {
   plants.forEach(plant => el.appendChild(makeChip(plant)));
 }
 
+// ── Zoom / pan helpers ──────────────────────────────────────────────────────
+function applyViewBox(): void {
+  svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+}
+
+const ZOOM_FACTOR = 1.15;
+const MIN_VBW = CANVAS_W * 0.1;   // max ~10× zoom in
+const MAX_VBW = CANVAS_W * 4;     // ~4× zoom out
+
+svgEl.addEventListener('wheel', (e: WheelEvent) => {
+  e.preventDefault();
+  const pt  = svgCoords(e);
+  const factor = e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+  const newW = Math.min(MAX_VBW, Math.max(MIN_VBW, vbW * factor));
+  const newH = newW * (CANVAS_H / CANVAS_W);
+  const rect = svgEl.getBoundingClientRect();
+  const relX = (e.clientX - rect.left) / rect.width;
+  const relY = (e.clientY - rect.top)  / rect.height;
+  vbX = pt.x - relX * newW;
+  vbY = pt.y - relY * newH;
+  vbW = newW; vbH = newH;
+  applyViewBox();
+}, { passive: false });
+
 // ── Drag-and-drop onto SVG ─────────────────────────────────────────────────
 function svgCoords(e: MouseEvent): { x: number; y: number } {
-  const rect = svgEl.getBoundingClientRect();
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const pt = svgEl.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const s = pt.matrixTransform(svgEl.getScreenCTM()!.inverse());
+  return { x: s.x, y: s.y };
 }
 
 // Fill a shape with a grid of plant markers, skipping positions already occupied.
@@ -913,6 +951,16 @@ function nextColor(): { fill: string; stroke: string } {
 }
 
 svgEl.addEventListener('mousedown', (e: MouseEvent) => {
+  // ── Middle-click or space+left-click → pan ─────────────────────────────
+  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+    e.preventDefault();
+    panning     = true;
+    panStartX   = e.clientX; panStartY   = e.clientY;
+    panVbStartX = vbX;       panVbStartY = vbY;
+    svgEl.style.cursor = 'grabbing';
+    return;
+  }
+
   // ── Select mode: markers and shape drag ────────────────────────────────
   if (currentTool === 'select') {
     const markerGroup = (e.target as Element).closest('[data-marker]') as SVGGElement | null;
@@ -1050,6 +1098,13 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
 });
 
 svgEl.addEventListener('mousemove', (e: MouseEvent) => {
+  if (panning) {
+    const rect = svgEl.getBoundingClientRect();
+    vbX = panVbStartX - (e.clientX - panStartX) / rect.width  * vbW;
+    vbY = panVbStartY - (e.clientY - panStartY) / rect.height * vbH;
+    applyViewBox();
+    return;
+  }
   if (currentTool === 'polygon' && polyPts.length > 0) {
     const pt = svgCoords(e);
     updatePolyPreview(pt);
@@ -1109,6 +1164,11 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
 });
 
 document.addEventListener('mouseup', () => {
+  if (panning) {
+    panning = false;
+    svgEl.style.cursor = spaceDown ? 'grab' : '';
+    return;
+  }
   draggingShape = null;
   draggingMarker = null;
   if (movingBg) { movingBg = false; return; }
