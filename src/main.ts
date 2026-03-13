@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import { PLANTS } from './plants';
+import { searchPlants } from './search';
+import { getOverride, setOverride } from './plantStore';
 import {
   SCALE, CANVAS_W, CANVAS_H,
   pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale, polygonSelfIntersects,
@@ -31,7 +32,6 @@ const infoContent    = document.getElementById('info-content') as HTMLDivElement
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
 const deleteBtn      = document.getElementById('delete-btn') as HTMLButtonElement;
 const statusMsg      = document.getElementById('status-msg') as HTMLSpanElement;
-const plantListEl    = document.getElementById('plant-list') as HTMLDivElement;
 const importBgBtn    = document.getElementById('import-bg-btn') as HTMLButtonElement;
 const bgFileInput    = document.getElementById('bg-file-input') as HTMLInputElement;
 const calibOverlay   = document.getElementById('calib-overlay') as HTMLDivElement;
@@ -356,6 +356,26 @@ function updateInfoPanel(d: ShapeData | null): void {
 }
 
 // ── Plant summary ──────────────────────────────────────────────────────────
+function renderUsedPlants(): void {
+  const section = document.getElementById('used-plants-section') as HTMLDivElement;
+  const el      = document.getElementById('used-plants') as HTMLDivElement;
+  // Collect unique plants by name, preserving first-seen order
+  const seen = new Map<string, Plant>();
+  for (const d of shapes) {
+    for (const m of d.plantMarkers) {
+      if (!seen.has(m.plant.name)) seen.set(m.plant.name, m.plant);
+    }
+  }
+  if (seen.size === 0) {
+    section.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  section.style.display = 'flex';
+  el.innerHTML = '';
+  seen.forEach(plant => el.appendChild(makeChip(plant)));
+}
+
 function updateSummary(): void {
   const totals: Record<string, { count: number; color: string }> = {};
   for (const d of shapes) {
@@ -366,6 +386,7 @@ function updateSummary(): void {
     }
   }
   const entries = Object.entries(totals);
+  renderUsedPlants();
   if (entries.length === 0) {
     summaryContent.innerHTML = '<div class="info-empty">No plants placed yet.</div>';
     return;
@@ -673,23 +694,120 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 // ── Plant palette (left panel) ─────────────────────────────────────────────
-function renderPlantList(): void {
-  PLANTS.forEach((plant, i) => {
-    const chip = document.createElement('div');
-    chip.className = 'plant-chip';
-    chip.draggable = true;
-    chip.innerHTML = `
-      <span class="chip-swatch" style="background:${plant.color}"></span>
-      <span>${plant.name} (${plant.spacing} m)</span>
-    `;
-    chip.addEventListener('dragstart', (e: DragEvent) => {
-      e.dataTransfer!.setData('plantIndex', String(i));
-      e.dataTransfer!.effectAllowed = 'copy';
-      chip.classList.add('dragging');
-    });
-    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
-    plantListEl.appendChild(chip);
+
+// Normalize any hex color to 6-digit form for <input type="color">
+function toColorInputHex(color: string): string {
+  const c = color.replace('#', '');
+  if (c.length === 3) return '#' + c.split('').map(x => x + x).join('');
+  return '#' + c.slice(0, 6);
+}
+
+// Edit popover state
+const editPopover    = document.getElementById('plant-edit-popover') as HTMLDivElement;
+const editSpacingEl  = document.getElementById('edit-spacing') as HTMLInputElement;
+const editColorEl    = document.getElementById('edit-color') as HTMLInputElement;
+const editSaveBtn    = document.getElementById('edit-save-btn') as HTMLButtonElement;
+const editCancelBtn  = document.getElementById('edit-cancel-btn') as HTMLButtonElement;
+let editTarget: { chip: HTMLDivElement; plant: Plant } | null = null;
+
+function closeEditPopover(): void {
+  editPopover.style.display = 'none';
+  editTarget = null;
+}
+
+function openEditPopover(plant: Plant, chip: HTMLDivElement): void {
+  const override = plant.slug ? getOverride(plant.slug) : null;
+  editSpacingEl.value = String(override?.spacing ?? plant.spacing);
+  editColorEl.value   = toColorInputHex(override?.color ?? plant.color);
+  editTarget = { chip, plant };
+
+  const rect = chip.getBoundingClientRect();
+  editPopover.style.display = 'flex';
+  const popW = editPopover.offsetWidth;
+  const left = Math.min(rect.right + 6, window.innerWidth - popW - 8);
+  editPopover.style.left = left + 'px';
+  editPopover.style.top  = rect.top + 'px';
+}
+
+// Update all placed markers for a slug to reflect new spacing/color.
+function applyOverrideToMarkers(slug: string, spacing: number, color: string): void {
+  const isDark = (c: string) => c !== '#e0e0e0' && c !== '#ffca28';
+  for (const d of shapes) {
+    for (const m of d.plantMarkers) {
+      if (m.plant.slug !== slug) continue;
+      m.plant.spacing = spacing;
+      m.plant.color   = color;
+      const circles = m.el.querySelectorAll('circle');
+      const ring = circles[0] as SVGCircleElement; // spacing-ring
+      const dot  = circles[1] as SVGCircleElement; // filled dot
+      ring.setAttribute('r',      String((spacing / 2) * sessionScale));
+      ring.setAttribute('stroke', color);
+      dot.setAttribute('fill',   color);
+      dot.setAttribute('stroke', isDark(color) ? '#fff' : '#aaa');
+      const txt = m.el.querySelector('text') as SVGTextElement | null;
+      if (txt) txt.setAttribute('fill', isDark(color) ? '#fff' : '#555');
+    }
+  }
+  renderUsedPlants();
+}
+
+editSaveBtn.addEventListener('click', () => {
+  if (!editTarget) return;
+  const { chip, plant } = editTarget;
+  if (!plant.slug) return;
+
+  const spacing = parseFloat(editSpacingEl.value);
+  const color   = editColorEl.value;
+  const result  = setOverride(plant.slug, { spacing, color });
+  if (!result.ok) { alert(result.error); return; }
+
+  // Update search-results chip in place
+  const swatch = chip.querySelector('.chip-swatch') as HTMLSpanElement;
+  swatch.style.background = color;
+  chip.dataset.plantJson = JSON.stringify({ ...plant, spacing, color });
+
+  // Update any markers already on the canvas
+  applyOverrideToMarkers(plant.slug, spacing, color);
+  closeEditPopover();
+});
+
+editCancelBtn.addEventListener('click', closeEditPopover);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEditPopover(); }, true);
+document.addEventListener('click', (e) => {
+  if (editTarget && !editPopover.contains(e.target as Node)) closeEditPopover();
+});
+
+function makeChip(plant: Plant): HTMLDivElement {
+  const override  = plant.slug ? getOverride(plant.slug) : null;
+  const effective = { ...plant, spacing: override?.spacing ?? plant.spacing, color: override?.color ?? plant.color };
+
+  const chip = document.createElement('div');
+  chip.className = 'plant-chip';
+  chip.draggable = true;
+  chip.dataset.plantJson = JSON.stringify(effective);
+  chip.innerHTML = `
+    <span class="chip-swatch" style="background:${effective.color}"></span>
+    <span class="chip-name">${plant.name}</span>
+    ${plant.slug ? '<button class="chip-edit-btn" draggable="false" title="Edit spacing / colour">✎</button>' : ''}
+  `;
+  chip.addEventListener('dragstart', (e: DragEvent) => {
+    e.dataTransfer!.setData('plantData', chip.dataset.plantJson!);
+    e.dataTransfer!.effectAllowed = 'copy';
+    chip.classList.add('dragging');
   });
+  chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+
+  const editBtn = chip.querySelector('.chip-edit-btn') as HTMLButtonElement | null;
+  if (editBtn) {
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditPopover(plant, chip); });
+  }
+  return chip;
+}
+
+function renderSearchResults(plants: Plant[]): void {
+  const el = document.getElementById('search-results') as HTMLDivElement;
+  el.innerHTML = '';
+  plants.forEach(plant => el.appendChild(makeChip(plant)));
 }
 
 // ── Drag-and-drop onto SVG ─────────────────────────────────────────────────
@@ -699,15 +817,16 @@ function svgCoords(e: MouseEvent): { x: number; y: number } {
 }
 
 svgEl.addEventListener('dragover', (e: DragEvent) => {
-  if (!e.dataTransfer!.types.includes('plantindex')) return;
+  if (!e.dataTransfer!.types.includes('plantdata')) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'copy';
 });
 
 svgEl.addEventListener('drop', (e: DragEvent) => {
   e.preventDefault();
-  const idx = parseInt(e.dataTransfer!.getData('plantIndex'));
-  if (isNaN(idx) || idx < 0 || idx >= PLANTS.length) return;
+  const raw = e.dataTransfer!.getData('plantData');
+  if (!raw) return;
+  const plant: Plant = JSON.parse(raw);
 
   const { x, y } = svgCoords(e);
 
@@ -717,7 +836,6 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   }
   if (!targetShape) return;
 
-  const plant = PLANTS[idx];
   const markerEl = createMarkerEl(plant, x, y);
   const marker: PlantMarker = { plant, x, y, el: markerEl };
   targetShape.plantMarkers.push(marker);
@@ -1024,6 +1142,10 @@ function exportXlsx(): void {
 document.getElementById('export-xls-btn')!.addEventListener('click', exportXlsx);
 
 // ── Init ───────────────────────────────────────────────────────────────────
+const plantSearchEl = document.getElementById('plant-search') as HTMLInputElement;
+plantSearchEl.addEventListener('input', () => {
+  renderSearchResults(searchPlants(plantSearchEl.value));
+});
+
 drawGrid();
-renderPlantList();
 setTool('select');

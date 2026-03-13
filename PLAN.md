@@ -100,6 +100,14 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 ### Phase 4 — Plant Database Management
 **Approach: TDD**
 
+#### 4a — Trefle.io data pipeline ✅
+- `scripts/fetch-plants.ts` — fetches all Swedish non-edible plants from Trefle.io (`/distributions/swe/plants`), paginates all 210 pages, writes `src/data/plants-raw.json` (~4 193 plants)
+- `scripts/enrich-plants.ts` — fetches detailed data per slug (`/plants/{slug}`), extracts `flower_colors`, `spread_cm`, `growth_habit`, `bloom_months`, `light`, etc.; writes `src/data/plants-enriched.json`
+- `src/search.ts` — live scientific-name search against the full raw corpus; merges enriched data (flower color → chip swatch, spread_cm → spacing) where available; family-based color fallback for unenriched plants
+- Left panel: search input (keystroke-triggered) + scrollable results chips above the Favourites list
+- Drag-and-drop migrated from index-based to JSON-serialised `plantData` in `dataTransfer`
+
+#### 4b — Plant DB management UI ⬜ (next)
 - UI panel to add, edit, and delete plants (name, spacing, colour swatch)
 - Changes are reflected immediately in the left sidebar palette
 - Spec the plant CRUD operations before implementing
@@ -164,7 +172,8 @@ _Deferred — revisit after Phase 6 is complete._
 | 2 — Plant Placement  | ✅ Complete |
 | ⚑ Prototype checkpoint | ✅ Complete |
 | 3 — Image Background & Scale Calibration | ✅ Complete |
-| 4 — Plant Database Management | ⬜ Not started |
+| 4a — Trefle data pipeline & search | ✅ Complete |
+| 4b — Plant DB management UI | ⬜ Not started |
 | 5 — Save / Load / Export | ⬜ Not started |
 | 6 — Polish & UX | ⬜ Not started |
 | 7 — Templates (deferred) | ⏸ Deferred |
@@ -181,3 +190,4 @@ _Update this section as phases complete or decisions change._
 - **2026-03-11** — Prototype checkpoint complete. Introduced Vite + Vitest + TypeScript. Extracted pure logic into `src/types.ts`, `src/plants.ts`, `src/geometry.ts`; UI code moved to `src/main.ts`. 34 tests, all passing.
 - **2026-03-11** — Phase 3 complete. Background image import (JPEG/PNG/SVG) in dedicated SVG layer; drag to reposition. Scale calibration via two-click + distance entry, updates `sessionScale` and redraws grid. Polygon shape tool with snap-to-close and self-intersection guard. Adaptive grid (1m major / 0.5m minor, recalculates on calibration). Visibility toggles for CC rings, grid, and background image. XLS export of plant summary via SheetJS. 58 tests passing.
 - **2026-03-11** — Phase 3 iteration. Drag-to-move shapes in Select mode (shape, markers, and label translate together). Drag-to-move individual plant markers. Unified selection model for markers: click to select (highlighted stroke), Delete key/button to remove — replaces instant click-to-delete.
+- **2026-03-12** — Phase 4a complete. Trefle.io data pipeline: `fetch-plants` script (210 pages, ~4 193 Swedish non-edible plants → `plants-raw.json`), `enrich-plants` script (per-slug detail fetch → `plants-enriched.json` with flower colors, spread, growth habit, bloom months). Live scientific-name search in left panel with scrollable chip results. Flower color from enriched data drives chip swatch; family-color fallback for unenriched plants. Spacing derived from `spread_cm` where available, else 0.30 m default. Drag-and-drop migrated to JSON `plantData` transfer key.

@@ -1,0 +1,125 @@
+import type { Plant } from './types';
+import rawData      from './data/plants-raw.json';
+import enrichedData from './data/plants-enriched-sample.json';
+
+interface RawPlant {
+  name: string;
+  scientific_name: string;
+  slug: string;
+  family: string;
+  family_common_name: string | null;
+  genus: string;
+  image_url: string | null;
+}
+
+interface EnrichedPlant extends RawPlant {
+  flower_colors:  string[] | null;
+  spread_cm:      number | null;
+  row_spacing_cm: number | null;
+}
+
+// ── Family fallback colors ────────────────────────────────────────────────────
+
+const FAMILY_COLORS: Record<string, string> = {
+  Poaceae:         '#a5d6a7',
+  Rosaceae:        '#f48fb1',
+  Lamiaceae:       '#ce93d8',
+  Asteraceae:      '#fff176',
+  Fabaceae:        '#80cbc4',
+  Pinaceae:        '#388e3c',
+  Betulaceae:      '#bcaaa4',
+  Apiaceae:        '#fff9c4',
+  Rubiaceae:       '#ffcc80',
+  Viburnaceae:     '#b0bec5',
+  Plantaginaceae:  '#c5e1a5',
+  Ranunculaceae:   '#b3e5fc',
+  Orchidaceae:     '#f8bbd9',
+  Salicaceae:      '#dce775',
+  Ericaceae:       '#ffab91',
+  Caryophyllaceae: '#f3e5f5',
+  Brassicaceae:    '#f9fbe7',
+  Polygonaceae:    '#e8f5e9',
+  Cyperaceae:      '#c8e6c9',
+  Juncaceae:       '#dcedc8',
+};
+
+// ── Flower color name → hex ───────────────────────────────────────────────────
+
+const FLOWER_COLOR_HEX: Record<string, string> = {
+  purple: '#ab47bc',
+  violet: '#7e57c2',
+  blue:   '#42a5f5',
+  red:    '#ef5350',
+  pink:   '#f48fb1',
+  orange: '#ffa726',
+  yellow: '#ffee58',
+  cream:  '#fff9c4',
+  white:  '#f5f5f5',
+  brown:  '#8d6e63',
+  grey:   '#90a4ae',
+  silver: '#b0bec5',
+  green:  '#66bb6a',
+  black:  '#424242',
+};
+
+// Prefer vivid/distinctive colors over white/green when multiple colors present
+const COLOR_PRIORITY = [
+  'purple', 'violet', 'blue', 'red', 'pink',
+  'orange', 'yellow', 'cream', 'white',
+  'brown', 'grey', 'silver', 'green', 'black',
+];
+
+function bestFlowerColor(colors: string[]): string | null {
+  if (!colors.length) return null;
+  const sorted = [...colors].sort((a, b) => {
+    const ai = COLOR_PRIORITY.indexOf(a);
+    const bi = COLOR_PRIORITY.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+  return FLOWER_COLOR_HEX[sorted[0]] ?? null;
+}
+
+// ── Enrichment lookup (slug → enriched data) ─────────────────────────────────
+
+const DEFAULT_SPACING = 0.30;
+const DEFAULT_COLOR   = '#90a4ae';
+
+const enrichedMap = new Map(
+  (enrichedData as EnrichedPlant[]).map(p => [p.slug, p])
+);
+
+// ── Conversion ────────────────────────────────────────────────────────────────
+
+function rawToPlant(raw: RawPlant): Plant {
+  const enriched = enrichedMap.get(raw.slug);
+
+  const flowerHex = enriched?.flower_colors?.length
+    ? bestFlowerColor(enriched.flower_colors)
+    : null;
+
+  const spacing = enriched?.spread_cm
+    ? enriched.spread_cm / 100
+    : enriched?.row_spacing_cm
+      ? enriched.row_spacing_cm / 100
+      : DEFAULT_SPACING;
+
+  return {
+    name:    raw.name,
+    slug:    raw.slug,
+    spacing: Math.max(0.10, Math.min(spacing, 3.0)), // clamp to sensible range
+    color:   flowerHex ?? FAMILY_COLORS[raw.family] ?? DEFAULT_COLOR,
+  };
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+
+const ALL_PLANTS = rawData as RawPlant[];
+
+export function searchPlants(query: string, limit = 20): Plant[] {
+  if (!query.trim()) return [];
+  const q = query.toLowerCase();
+  return ALL_PLANTS
+    .filter(r => r.scientific_name.toLowerCase().includes(q))
+    .slice(0, limit)
+    .map(rawToPlant);
+}

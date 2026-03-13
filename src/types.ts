@@ -2,6 +2,7 @@ export interface Plant {
   name: string;
   spacing: number; // metres, centre-to-centre
   color: string;   // CSS hex color
+  slug?: string;   // Trefle slug, present on search results
 }
 
 export interface PlantMarker {
