@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   SCALE, pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale,
   calcPolygonArea, polygonCentroid, pointInPolygon, segmentsIntersect, polygonSelfIntersects,
+  shapeBoundingBox, calcFillCount,
 } from './geometry';
-import type { RectShape, CircleShape, EllipseShape } from './types';
+import type { RectShape, CircleShape, EllipseShape, PolygonShape } from './types';
 
 // Minimal shape stubs — only the fields geometry functions use
 const stubBase = {
@@ -156,4 +157,73 @@ describe('polygonSelfIntersects', () => {
     () => expect(polygonSelfIntersects([{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 50, y: 100 }])).toBe(false));
   it('bowtie (figure-eight) self-intersects',
     () => expect(polygonSelfIntersects([{ x: 0, y: 0 }, { x: 100, y: 100 }, { x: 100, y: 0 }, { x: 0, y: 100 }])).toBe(true));
+});
+
+// ── shapeBoundingBox ────────────────────────────────────────────────────────
+
+describe('shapeBoundingBox', () => {
+  const base = { el: null as unknown as SVGGeometryElement, labelEl: null, fill: '', stroke: '', plantMarkers: [] };
+
+  it('rect: returns x/y/w/h directly', () => {
+    const r: RectShape = { ...base, type: 'rect', x: 10, y: 20, w: 150, h: 80 };
+    expect(shapeBoundingBox(r)).toEqual({ x: 10, y: 20, w: 150, h: 80 });
+  });
+
+  it('circle: bbox is square centred on cx/cy with side 2r', () => {
+    const c: CircleShape = { ...base, type: 'circle', cx: 100, cy: 100, r: 40 };
+    expect(shapeBoundingBox(c)).toEqual({ x: 60, y: 60, w: 80, h: 80 });
+  });
+
+  it('ellipse: bbox uses rx/ry', () => {
+    const e: EllipseShape = { ...base, type: 'ellipse', cx: 200, cy: 150, rx: 60, ry: 30 };
+    expect(shapeBoundingBox(e)).toEqual({ x: 140, y: 120, w: 120, h: 60 });
+  });
+
+  it('polygon: tight bbox around all vertices', () => {
+    const p: PolygonShape = {
+      ...base, type: 'polygon',
+      points: [{ x: 10, y: 50 }, { x: 90, y: 10 }, { x: 150, y: 80 }, { x: 60, y: 120 }],
+    };
+    expect(shapeBoundingBox(p)).toEqual({ x: 10, y: 10, w: 140, h: 110 });
+  });
+});
+
+// ── calcFillCount ───────────────────────────────────────────────────────────
+
+describe('calcFillCount', () => {
+  it('fills a 10 m² bed with 0.5 m spacing and no existing markers', () => {
+    // cell = 0.25 m², ceil(10/0.25) = 40
+    expect(calcFillCount(10, 0, 0.5)).toBe(40);
+  });
+
+  it('deducts existing markers from available area', () => {
+    // used = 5 * 0.25 = 1.25 m², available = 8.75, ceil(8.75/0.25) = 35
+    expect(calcFillCount(10, 5, 0.5)).toBe(35);
+  });
+
+  it('returns 0 when existing markers exactly fill the area', () => {
+    // 40 markers * 0.25 m² = 10 m² → available = 0
+    expect(calcFillCount(10, 40, 0.5)).toBe(0);
+  });
+
+  it('returns 0 when existing markers exceed the area', () => {
+    expect(calcFillCount(10, 50, 0.5)).toBe(0);
+  });
+
+  it('uses ceiling — partial cell rounds up', () => {
+    // area = 1.1 m², spacing = 1.0 m, cell = 1 m², ceil(1.1/1) = 2
+    expect(calcFillCount(1.1, 0, 1.0)).toBe(2);
+  });
+
+  it('returns 0 for zero area', () => {
+    expect(calcFillCount(0, 0, 0.5)).toBe(0);
+  });
+
+  it('returns 0 for zero spacing', () => {
+    expect(calcFillCount(10, 0, 0)).toBe(0);
+  });
+
+  it('returns 1 for area equal to one cell', () => {
+    expect(calcFillCount(1, 0, 1.0)).toBe(1);
+  });
 });

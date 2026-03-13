@@ -4,6 +4,7 @@ import { getOverride, setOverride } from './plantStore';
 import {
   SCALE, CANVAS_W, CANVAS_H,
   pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale, polygonSelfIntersects,
+  shapeBoundingBox, calcFillCount,
 } from './geometry';
 import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './types';
 
@@ -49,6 +50,9 @@ let startY    = 0;
 let activeEl: SVGElement | null = null;
 let selectedData: ShapeData | null = null;
 let shapes: ShapeData[] = [];
+
+// Fill mode — toggled via toolbar button, resets to false after each successful drop
+let fillMode = false;
 
 // Polygon drawing state
 let polyPts:        Array<{ x: number; y: number }> = [];
@@ -513,6 +517,13 @@ function deleteSelected(): void {
 
 deleteBtn.addEventListener('click', deleteSelected);
 
+// ── Fill mode toggle ───────────────────────────────────────────────────────
+const fillModeBtn = document.getElementById('fill-mode-btn') as HTMLButtonElement;
+fillModeBtn.addEventListener('click', () => {
+  fillMode = !fillMode;
+  fillModeBtn.classList.toggle('active', fillMode);
+});
+
 // ── Visibility toggles ─────────────────────────────────────────────────────
 const ringsToggle = document.getElementById('rings-toggle') as HTMLInputElement;
 ringsToggle.addEventListener('change', () => {
@@ -678,6 +689,7 @@ function setTool(name: Tool): void {
 }
 
 document.querySelectorAll('.tool-btn').forEach(b => {
+  if (!(b as HTMLElement).dataset['tool']) return;
   b.addEventListener('click', () => setTool((b as HTMLElement).dataset['tool'] as Tool));
 });
 
@@ -816,6 +828,47 @@ function svgCoords(e: MouseEvent): { x: number; y: number } {
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
+// Fill a shape with a grid of plant markers, skipping positions already occupied.
+function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
+  const areaM2    = calcArea(shape, sessionScale);
+  const estimated = calcFillCount(areaM2, shape.plantMarkers.length, plant.spacing);
+
+  if (estimated <= 0) {
+    statusMsg.textContent = `No space left to fill with "${plant.name}".`;
+    return;
+  }
+
+  const stepPx = plant.spacing * sessionScale;
+  const bb     = shapeBoundingBox(shape);
+  let placed   = 0;
+
+  for (let gy = bb.y + stepPx / 2; gy < bb.y + bb.h; gy += stepPx) {
+    for (let gx = bb.x + stepPx / 2; gx < bb.x + bb.w; gx += stepPx) {
+      if (!pointInShape(shape, gx, gy)) continue;
+      // Skip if too close to any existing marker
+      const occupied = shape.plantMarkers.some(m => {
+        const dx = m.x - gx, dy = m.y - gy;
+        return Math.sqrt(dx * dx + dy * dy) < stepPx * 0.9;
+      });
+      if (occupied) continue;
+
+      const filledMarkerEl = createMarkerEl(plant, gx, gy);
+      shape.plantMarkers.push({ plant, x: gx, y: gy, el: filledMarkerEl });
+      placed++;
+    }
+  }
+
+  if (placed === 0) {
+    statusMsg.textContent = `No space left to fill with "${plant.name}".`;
+    return;
+  }
+
+  updateLabelEl(shape);
+  if (selectedData === shape) updateInfoPanel(shape);
+  updateSummary();
+  statusMsg.textContent = `Filled with ${placed} × ${plant.name}`;
+}
+
 svgEl.addEventListener('dragover', (e: DragEvent) => {
   if (!e.dataTransfer!.types.includes('plantdata')) return;
   e.preventDefault();
@@ -835,6 +888,13 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
     if (pointInShape(shapes[i], x, y)) { targetShape = shapes[i]; break; }
   }
   if (!targetShape) return;
+
+  if (fillMode) {
+    fillMode = false;
+    fillModeBtn.classList.remove('active');
+    fillShapeWithPlant(targetShape, plant);
+    return;
+  }
 
   const markerEl = createMarkerEl(plant, x, y);
   const marker: PlantMarker = { plant, x, y, el: markerEl };

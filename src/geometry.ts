@@ -117,6 +117,31 @@ export function pointInEllipse(d: ShapeData & { type: 'ellipse' }, x: number, y:
   return dx * dx + dy * dy <= 1;
 }
 
+export function shapeBoundingBox(d: ShapeData): { x: number; y: number; w: number; h: number } {
+  if (d.type === 'rect')    return { x: d.x, y: d.y, w: d.w, h: d.h };
+  if (d.type === 'circle')  return { x: d.cx - d.r,  y: d.cy - d.r,  w: 2 * d.r,  h: 2 * d.r  };
+  if (d.type === 'ellipse') return { x: d.cx - d.rx, y: d.cy - d.ry, w: 2 * d.rx, h: 2 * d.ry };
+  // polygon
+  const xs = d.points.map(p => p.x);
+  const ys = d.points.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+/**
+ * Estimated number of plants needed to fill the available area.
+ * Uses ceiling so the count slightly over-estimates rather than under-estimates.
+ * existingMarkers reduces the available area (square-grid cell per marker).
+ */
+export function calcFillCount(shapeAreaM2: number, existingMarkers: number, spacingM: number): number {
+  if (spacingM <= 0) return 0;
+  const cellArea  = spacingM * spacingM;
+  const available = Math.max(0, shapeAreaM2 - existingMarkers * cellArea);
+  if (available === 0) return 0;
+  return Math.ceil(available / cellArea);
+}
+
 export function pointInShape(d: ShapeData, x: number, y: number): boolean {
   if (d.type === 'rect')    return pointInRect(d, x, y);
   if (d.type === 'circle')  return pointInCircle(d, x, y);
