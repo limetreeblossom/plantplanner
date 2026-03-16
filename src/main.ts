@@ -268,10 +268,12 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   ring.style.pointerEvents = 'none';
   ring.classList.add('spacing-ring');
 
+  const dotR = (plant.spacing / 2) * sessionScale * 0.45;
+
   const circle = document.createElementNS(NS, 'circle') as SVGCircleElement;
   circle.setAttribute('cx', String(x));
   circle.setAttribute('cy', String(y));
-  circle.setAttribute('r', '8');
+  circle.setAttribute('r', String(dotR));
   circle.setAttribute('fill', plant.color);
   circle.setAttribute('stroke', strokeColor);
   circle.setAttribute('stroke-width', '1.5');
@@ -281,7 +283,7 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   text.setAttribute('y', String(y));
   text.setAttribute('text-anchor', 'middle');
   text.setAttribute('dominant-baseline', 'middle');
-  text.setAttribute('font-size', '7');
+  text.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
   text.setAttribute('font-weight', '700');
   text.setAttribute('font-family', 'system-ui,sans-serif');
   text.setAttribute('fill', textFill);
@@ -649,6 +651,19 @@ function applyCalibration(): void {
     scaleInfo.textContent = `Scale: 1 m = ${Math.round(sessionScale)} px`;
     drawGrid(sessionScale);
     for (const s of shapes) updateLabelEl(s);
+    for (const s of shapes) {
+      for (const m of s.plantMarkers) {
+        const ringR = (m.plant.spacing / 2) * sessionScale;
+        const dotR  = ringR * 0.45;
+        const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
+        if (ring) ring.setAttribute('r', String(ringR));
+        const circles = m.el.querySelectorAll('circle');
+        const dot = circles[1] as SVGCircleElement | undefined;
+        if (dot) dot.setAttribute('r', String(dotR));
+        const txt = m.el.querySelector('text') as SVGTextElement | null;
+        if (txt) txt.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
+      }
+    }
     if (selectedData) updateInfoPanel(selectedData);
     statusMsg.textContent = `Scale calibrated: 1 m = ${fmt(sessionScale, 1)} px`;
   }
@@ -761,15 +776,21 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
       if (m.plant.slug !== slug) continue;
       m.plant.spacing = spacing;
       m.plant.color   = color;
+      const ringR = (spacing / 2) * sessionScale;
+      const dotR  = Math.max(5, ringR * 0.45);
       const circles = m.el.querySelectorAll('circle');
       const ring = circles[0] as SVGCircleElement; // spacing-ring
       const dot  = circles[1] as SVGCircleElement; // filled dot
-      ring.setAttribute('r',      String((spacing / 2) * sessionScale));
+      ring.setAttribute('r',      String(ringR));
       ring.setAttribute('stroke', color);
+      dot.setAttribute('r',      String(dotR));
       dot.setAttribute('fill',   color);
       dot.setAttribute('stroke', isDark(color) ? '#fff' : '#aaa');
       const txt = m.el.querySelector('text') as SVGTextElement | null;
-      if (txt) txt.setAttribute('fill', isDark(color) ? '#fff' : '#555');
+      if (txt) {
+        txt.setAttribute('fill', isDark(color) ? '#fff' : '#555');
+        txt.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
+      }
     }
   }
   renderUsedPlants();
