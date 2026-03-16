@@ -12,14 +12,8 @@ import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './typ
 const NS = 'http://www.w3.org/2000/svg';
 const SNAP_RADIUS = 12; // px — distance within which cursor snaps to first polygon vertex
 
-const FILL_COLORS: string[] = [
-  'rgba(76,175,80,0.22)', 'rgba(255,193,7,0.22)',
-  'rgba(33,150,243,0.22)', 'rgba(233,30,99,0.22)',
-  'rgba(156,39,176,0.22)', 'rgba(255,87,34,0.22)',
-];
-const STROKE_COLORS: string[] = [
-  '#388e3c', '#f9a825', '#1565c0', '#880e4f', '#6a1b9a', '#bf360c',
-];
+const FILL_COLORS:   string[] = ['rgba(200,200,200,0.25)'];
+const STROKE_COLORS: string[] = ['#999'];
 let colorIndex = 0;
 
 // ── Flower icon (vectorizer.io trace, viewBox 0 0 600 600, centre 300 300) ─
@@ -336,7 +330,7 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   ring.setAttribute('cy', String(y));
   ring.setAttribute('r', String((plant.spacing / 2) * sessionScale));
   ring.setAttribute('fill', 'none');
-  ring.setAttribute('stroke', plant.color);
+  ring.setAttribute('stroke', '#2e7d32');
   ring.setAttribute('stroke-width', '1');
   ring.setAttribute('stroke-dasharray', '4 3');
   ring.setAttribute('opacity', '0.5');
@@ -855,7 +849,6 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
       const ring    = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
       if (!ring) continue;
       ring.setAttribute('r',      String(ringR));
-      ring.setAttribute('stroke', color);
       const cx      = parseFloat(ring.getAttribute('cx') ?? '0');
       const cy      = parseFloat(ring.getAttribute('cy') ?? '0');
       const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;

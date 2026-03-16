@@ -82,7 +82,8 @@ function bestFlowerColor(colors: string[]): string | null {
 
 // ── Enrichment lookup (slug → enriched data) ─────────────────────────────────
 
-const DEFAULT_SPACING = 0.30;
+const DEFAULT_SPACING      = 0.30;
+const DEFAULT_SPACING_TREE = 2.0;
 const DEFAULT_COLOR   = '#90a4ae';
 
 const enrichedMap = new Map(
@@ -98,18 +99,19 @@ function rawToPlant(raw: RawPlant): Plant {
     ? bestFlowerColor(enriched.flower_colors)
     : null;
 
+  const isTree = enriched?.growth_habit === 'Tree';
   const spacing = enriched?.spread_cm
     ? enriched.spread_cm / 100
     : enriched?.row_spacing_cm
       ? enriched.row_spacing_cm / 100
-      : DEFAULT_SPACING;
+      : isTree ? DEFAULT_SPACING_TREE : DEFAULT_SPACING;
 
   return {
     name:    raw.name,
     slug:    raw.slug,
     spacing: Math.max(0.10, Math.min(spacing, 3.0)), // clamp to sensible range
     color:   flowerHex ?? FAMILY_COLORS[raw.family] ?? DEFAULT_COLOR,
-    ...(enriched?.growth_habit === 'Tree' && { icon: 'tree' as const }),
+    ...(isTree && { icon: 'tree' as const }),
   };
 }
 
