@@ -915,9 +915,8 @@ editSaveBtn.addEventListener('click', () => {
   const result  = setOverride(plant.slug, { spacing, color });
   if (!result.ok) { alert(result.error); return; }
 
-  // Update search-results chip in place
-  const swatch = chip.querySelector('.chip-swatch') as HTMLSpanElement;
-  swatch.style.background = color;
+  // Update chip icon color and stored data
+  chip.querySelectorAll('.chip-petal').forEach(p => (p as SVGElement).setAttribute('fill', color));
   chip.dataset.plantJson = JSON.stringify({ ...plant, spacing, color });
 
   // Update any markers already on the canvas
@@ -975,6 +974,46 @@ function hideImgTooltip(): void {
   imgTipImg.onerror = null;
 }
 
+function makeChipIcon(plant: Plant): SVGSVGElement {
+  const svg = document.createElementNS(NS, 'svg') as SVGSVGElement;
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+  svg.style.flexShrink = '0';
+
+  if (plant.icon === 'tree') {
+    svg.setAttribute('viewBox', '315 100 82 82');
+    const shadow = document.createElementNS(NS, 'path') as SVGPathElement;
+    shadow.setAttribute('d', TREE_SHADOW_D);
+    shadow.setAttribute('fill', '#c7c7c7');
+    shadow.setAttribute('fill-opacity', '0.6');
+    svg.appendChild(shadow);
+    const body = document.createElementNS(NS, 'path') as SVGPathElement;
+    body.setAttribute('d', TREE_BODY_D);
+    body.setAttribute('fill', '#2e7d32');
+    body.setAttribute('stroke', '#1b5e20');
+    body.setAttribute('stroke-width', '1');
+    svg.appendChild(body);
+  } else {
+    svg.setAttribute('viewBox', '30 30 540 540');
+    const outline = document.createElementNS(NS, 'path') as SVGPathElement;
+    outline.setAttribute('d', FLOWER_OUTLINE_D);
+    outline.setAttribute('fill', '#1a1a1a');
+    svg.appendChild(outline);
+    for (const d of FLOWER_PETAL_DS) {
+      const p = document.createElementNS(NS, 'path') as SVGPathElement;
+      p.setAttribute('d', d);
+      p.setAttribute('fill', plant.color);
+      p.classList.add('chip-petal');
+      svg.appendChild(p);
+    }
+    const center = document.createElementNS(NS, 'path') as SVGPathElement;
+    center.setAttribute('d', FLOWER_CENTER_D);
+    center.setAttribute('fill', '#fff');
+    svg.appendChild(center);
+  }
+  return svg;
+}
+
 function makeChip(plant: Plant): HTMLDivElement {
   const override  = plant.slug ? getOverride(plant.slug) : null;
   const effective = { ...plant, spacing: override?.spacing ?? plant.spacing, color: override?.color ?? plant.color };
@@ -983,11 +1022,24 @@ function makeChip(plant: Plant): HTMLDivElement {
   chip.className = 'plant-chip';
   chip.draggable = true;
   chip.dataset.plantJson = JSON.stringify(effective);
-  chip.innerHTML = `
-    <span class="chip-swatch" style="background:${effective.color}"></span>
-    <span class="chip-name">${plant.scientific_name ?? plant.name}</span>
-    ${plant.slug ? '<button class="chip-edit-btn" draggable="false" title="Edit spacing / colour">✎</button>' : ''}
-  `;
+
+  chip.appendChild(makeChipIcon(effective));
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'chip-name';
+  nameSpan.textContent = plant.scientific_name ?? plant.name;
+  chip.appendChild(nameSpan);
+
+  if (plant.slug) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'chip-edit-btn';
+    editBtn.draggable = false;
+    editBtn.title = 'Edit spacing / colour';
+    editBtn.textContent = '✎';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditPopover(plant, chip); });
+    chip.appendChild(editBtn);
+  }
+
   chip.addEventListener('dragstart', (e: DragEvent) => {
     e.dataTransfer!.setData('plantData', chip.dataset.plantJson!);
     e.dataTransfer!.effectAllowed = 'copy';
@@ -1001,10 +1053,6 @@ function makeChip(plant: Plant): HTMLDivElement {
     chip.addEventListener('dragstart',  hideImgTooltip);
   }
 
-  const editBtn = chip.querySelector('.chip-edit-btn') as HTMLButtonElement | null;
-  if (editBtn) {
-    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditPopover(plant, chip); });
-  }
   return chip;
 }
 
