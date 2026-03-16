@@ -16,6 +16,7 @@ interface EnrichedPlant extends RawPlant {
   flower_colors:  string[] | null;
   spread_cm:      number | null;
   row_spacing_cm: number | null;
+  growth_habit:   string | null;
 }
 
 // ── Family fallback colors ────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ function rawToPlant(raw: RawPlant): Plant {
     slug:    raw.slug,
     spacing: Math.max(0.10, Math.min(spacing, 3.0)), // clamp to sensible range
     color:   flowerHex ?? FAMILY_COLORS[raw.family] ?? DEFAULT_COLOR,
+    ...(enriched?.growth_habit === 'Tree' && { icon: 'tree' as const }),
   };
 }
 

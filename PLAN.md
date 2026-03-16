@@ -107,12 +107,13 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 - Left panel: search input (keystroke-triggered) + scrollable results chips above the Favourites list
 - Drag-and-drop migrated from index-based to JSON-serialised `plantData` in `dataTransfer`
 
-#### 4b — Plant DB management UI ⬜ (next)
-- UI panel to add, edit, and delete plants (name, spacing, colour swatch)
-- Changes are reflected immediately in the left sidebar palette
-- Spec the plant CRUD operations before implementing
+#### 4b — Per-plant overrides UI ✅
+- Edit button (✎) on each search-result chip opens a popover to override spacing and colour
+- Overrides stored in `src/plantStore.ts` (get/set/delete per Trefle slug); validated before writing
+- Saving an override updates the chip swatch and all already-placed markers on the canvas
+- `plantStore.test.ts` covers CRUD and validation
 
-**Done when:** Add a custom plant, drag it onto a bed, see it in the summary
+**Done when:** Click ✎ on a search chip → change spacing/colour → placed markers update immediately
 
 ---
 
@@ -181,7 +182,7 @@ _Deferred — revisit after Phase 7 is complete._
 | ⚑ Prototype checkpoint | ✅ Complete |
 | 3 — Image Background & Scale Calibration | ✅ Complete |
 | 4a — Trefle data pipeline & search | ✅ Complete |
-| 4b — Plant DB management UI | ⬜ Not started |
+| 4b — Per-plant overrides UI | ✅ Complete |
 | 5 — Zoom & Pan | ✅ Complete |
 | 6 — Save / Load / Export | ⬜ Not started |
 | 7 — Polish & UX | ⬜ Not started |
@@ -200,3 +201,6 @@ _Update this section as phases complete or decisions change._
 - **2026-03-11** — Phase 3 complete. Background image import (JPEG/PNG/SVG) in dedicated SVG layer; drag to reposition. Scale calibration via two-click + distance entry, updates `sessionScale` and redraws grid. Polygon shape tool with snap-to-close and self-intersection guard. Adaptive grid (1m major / 0.5m minor, recalculates on calibration). Visibility toggles for CC rings, grid, and background image. XLS export of plant summary via SheetJS. 58 tests passing.
 - **2026-03-11** — Phase 3 iteration. Drag-to-move shapes in Select mode (shape, markers, and label translate together). Drag-to-move individual plant markers. Unified selection model for markers: click to select (highlighted stroke), Delete key/button to remove — replaces instant click-to-delete.
 - **2026-03-12** — Phase 4a complete. Trefle.io data pipeline: `fetch-plants` script (210 pages, ~4 193 Swedish non-edible plants → `plants-raw.json`), `enrich-plants` script (per-slug detail fetch → `plants-enriched.json` with flower colors, spread, growth habit, bloom months). Live scientific-name search in left panel with scrollable chip results. Flower color from enriched data drives chip swatch; family-color fallback for unenriched plants. Spacing derived from `spread_cm` where available, else 0.30 m default. Drag-and-drop migrated to JSON `plantData` transfer key.
+- **2026-03-13** — Phase 4b complete. Removed hardcoded favourites list. Added per-plant override store (`src/plantStore.ts`: get/set/delete per Trefle slug with validation). Edit popover (✎ button on search chips) lets user override spacing and colour; saving updates chip swatch and all placed markers immediately. Fixed fill-mode markers not being interactive after toggling fill mode. Added regression test for `.tool-btn` data-tool attribute.
+- **2026-03-13** — Phase 5 complete. Zoom via scroll wheel toward cursor; pan via middle-click drag or Space+drag. Implemented via SVG viewBox manipulation — canvas content coordinates unchanged.
+- **2026-03-16** — Plant markers now scale proportionally with `sessionScale`. Replaced circle plant icons with traced flower SVG icon.

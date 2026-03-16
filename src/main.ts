@@ -26,6 +26,14 @@ let colorIndex = 0;
 const FLOWER_RADIUS = 270; // px from centre to petal tip in viewBox coords
 const FLOWER_OUTLINE_D = 'M298.13 569.24 c-27.60 -3.93 -46.46 -16.93 -56.72 -39.20 -3.98 -8.61 -8.79 -26.02 -8.79 -31.76 0 -0.76 -0.18 -1.41 -0.35 -1.41 -0.23 0 -2.93 2.46 -6.09 5.45 -12.19 11.72 -23.09 18.87 -35.27 23.14 -7.21 2.58 -14.06 3.63 -23.38 3.63 -12.77 0 -20.98 -1.82 -32.58 -7.32 -11.60 -5.51 -21.21 -12.48 -29.88 -21.62 -8.03 -8.50 -12.66 -16.29 -15.82 -26.72 -2.17 -7.15 -2.58 -21.15 -0.88 -29.30 0.64 -3.05 1.35 -5.98 1.52 -6.45 0.29 -0.64 -0.41 -1.17 -2.70 -1.99 -23.38 -8.20 -41.13 -30.12 -48.57 -59.77 -0.88 -3.52 -1.29 -7.44 -1.52 -15.29 -0.41 -13.71 0.59 -19.10 5.33 -28.65 5.10 -10.37 12.07 -18.28 22.44 -25.37 2.46 -1.70 4.22 -3.11 3.81 -3.11 -1.46 0 -13.30 -8.55 -17.99 -13.01 -10.49 -9.90 -15.88 -18.81 -19.39 -31.99 -2.05 -7.79 -2.58 -21.45 -1.17 -31.05 3.87 -26.19 16.35 -47.29 34.22 -57.83 4.98 -2.93 15.53 -6.56 20.51 -7.09 4.98 -0.53 5.04 -0.64 3.93 -4.69 -1.52 -5.39 -1.88 -20.86 -0.59 -27.19 2.70 -13.13 8.85 -23.32 21.33 -35.33 23.44 -22.38 54.02 -30.35 81.33 -21.15 6.50 2.17 14.36 6.27 20.68 10.78 5.63 3.98 19.57 16.29 20.10 17.70 0.41 1.11 0.64 0.12 2.17 -8.61 2.70 -15.64 9.08 -30.06 17.87 -40.31 12.36 -14.47 32.52 -22.97 57.42 -24.26 19.75 -1 40.90 4.92 52.68 14.71 10.90 9.14 17.23 19.57 21.33 35.33 l1.58 5.92 4.39 -2.93 c11.72 -7.73 23.50 -11.43 38.09 -12.01 12.66 -0.47 23.73 1.93 36.04 8.03 12.66 6.15 23.14 14.12 31 23.44 14.47 17.17 18.52 34.45 13.54 57.77 l-0.41 1.82 4.04 0.41 c15.06 1.58 27.54 7.62 37.38 18.05 9.67 10.31 16.70 24.61 20.33 41.66 1.70 8.20 1.88 26.31 0.29 33.81 -4.28 19.69 -14.41 33.40 -33.63 45.47 -2.75 1.76 -4.80 3.16 -4.45 3.16 0.29 0 3.16 1.93 6.39 4.28 12.01 8.85 20.04 20.04 23.79 33.05 1.23 4.10 1.35 5.86 1.35 16.88 0 11.43 -0.12 12.77 -1.58 18.46 -5.74 22.50 -17.99 41.13 -34.28 51.91 -4.98 3.34 -12.01 6.68 -16.76 7.91 -1.52 0.41 -2.75 1.05 -2.75 1.41 0.06 0.29 0.41 2.29 0.88 4.39 2.11 9.32 1.76 21.74 -0.94 32.05 -3.69 14.18 -16.29 29.59 -33.05 40.61 -5.80 3.75 -16.11 8.85 -21.97 10.78 -13.83 4.57 -32.75 4.39 -46.29 -0.35 -5.98 -2.11 -13.13 -5.68 -17.70 -8.73 -1.82 -1.29 -3.46 -2.29 -3.57 -2.29 -0.12 0 -0.59 1.52 -1 3.40 -1.23 5.68 -4.63 14.82 -7.38 19.80 -9.38 17.34 -23.50 26.84 -46.23 31.05 -7.15 1.29 -24.55 1.64 -32.05 0.53z';
 const FLOWER_CENTER_D = 'M295.31 333.98 c-4.51 -0.59 -10.90 -2.87 -14.77 -5.33 -3.63 -2.34 -9.14 -8.26 -11.19 -12.07 -5.21 -9.67 -5.10 -23.50 0.29 -33.75 3.87 -7.38 12.77 -14.24 21.33 -16.46 4.57 -1.17 14.12 -1.23 18.40 -0.06 6.04 1.58 10.55 4.28 15.18 9.02 6.91 7.15 10.02 14.88 10.02 25.25 0 8.73 -3.05 16.29 -9.38 23.03 -7.68 8.26 -18.05 11.84 -29.88 10.37z';
+// ── Tree icon paths ─────────────────────────────────────────────────────────
+// Source: shape 6b from tree-32.svg (top-view tree, Inkscape CC0)
+// Path-local bbox: x 320–391, y 105–176; center (355.5, 140.3); half-extent ~35.5
+// Normalising transform in createTreeMarker: translate(-55.5, 159.7) → center at (300,300)
+const TREE_RADIUS = 35.5; // half-extent in path-local coords
+const TREE_SHADOW_D = 'm 330.97063,126.53152 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
+const TREE_BODY_D   = 'm 327.42837,125.29943 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
+
 const FLOWER_PETAL_DS: string[] = [
   'M304.75 543.69 c-14.88 -1.76 -27.95 -8.91 -35.57 -19.63 -12.42 -17.40 -16 -45.64 -10.49 -82.62 3.57 -24.08 11.13 -53.26 19.16 -73.95 2.11 -5.45 2.52 -6.04 3.63 -5.80 0.64 0.18 3.34 0.82 5.92 1.46 2.58 0.64 6.50 1.41 8.73 1.70 l4.04 0.47 3.34 10.25 c13.65 41.78 31.52 77.93 52.27 105.94 l5.80 7.85 -0.64 6.56 c-1.70 17.05 -5.51 26.78 -13.77 35.27 -9.90 10.08 -24.96 14.47 -42.42 12.48z',
   'M158.85 501.86 c-6.04 -1.35 -9.43 -2.58 -15.12 -5.57 -18.52 -9.67 -29.47 -25.02 -29.47 -41.43 0 -24.90 26.07 -57.01 72.07 -88.89 15.88 -11.02 31.29 -20.33 50.45 -30.47 l7.44 -3.87 2.81 3.93 c1.58 2.23 5.04 6.27 7.73 9.08 l4.92 5.10 -2.93 8.09 c-10.43 28.83 -18.28 59.82 -21.27 83.67 l-1.23 9.96 -2.64 4.10 c-15.47 23.73 -33.98 40.20 -50.86 45.12 -6.62 1.93 -16.29 2.46 -21.91 1.17z',
@@ -292,6 +300,31 @@ function createFlowerMarker(x: number, y: number, dotR: number, color: string): 
   return g;
 }
 
+/** Builds a scaled tree icon <g> centred at (x, y) with the given dotR and plant color. */
+function createTreeMarker(x: number, y: number, dotR: number, color: string): SVGGElement {
+  const s = dotR / TREE_RADIUS;
+  const g = document.createElementNS(NS, 'g') as SVGGElement;
+  // translate(-355.5, -140.3) moves path-local center (355.5, 140.3) to origin before scaling
+  g.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-355.5,-140.3)`);
+  g.classList.add('tree-icon');
+
+  const shadow = document.createElementNS(NS, 'path') as SVGPathElement;
+  shadow.setAttribute('d', TREE_SHADOW_D);
+  shadow.setAttribute('fill', '#c7c7c7');
+  shadow.setAttribute('fill-opacity', '0.6');
+  shadow.style.pointerEvents = 'none';
+  g.appendChild(shadow);
+
+  const body = document.createElementNS(NS, 'path') as SVGPathElement;
+  body.setAttribute('d', TREE_BODY_D);
+  body.setAttribute('fill', '#2e7d32');
+  body.setAttribute('stroke', '#1b5e20');
+  body.setAttribute('stroke-width', '1');
+  g.appendChild(body);
+
+  return g;
+}
+
 // ── Marker creation ────────────────────────────────────────────────────────
 function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   const g = document.createElementNS(NS, 'g') as SVGGElement;
@@ -310,11 +343,13 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   ring.style.pointerEvents = 'none';
   ring.classList.add('spacing-ring');
 
-  const dotR = (plant.spacing / 2) * sessionScale * 0.45;
-  const flowerG = createFlowerMarker(x, y, dotR, plant.color);
+  const dotR  = (plant.spacing / 2) * sessionScale * 0.45;
+  const iconG = plant.icon === 'tree'
+    ? createTreeMarker(x, y, dotR, plant.color)
+    : createFlowerMarker(x, y, dotR, plant.color);
 
   g.appendChild(ring);
-  g.appendChild(flowerG);
+  g.appendChild(iconG);
   markersLayer.appendChild(g);
   return g;
 }
@@ -494,12 +529,17 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
   m.el.querySelectorAll('circle').forEach(c => {
     c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y));
   });
+  const ringR = (m.plant.spacing / 2) * sessionScale;
+  const dotR  = ringR * 0.45;
   const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
   if (flowerG) {
-    const ringR = (m.plant.spacing / 2) * sessionScale;
-    const dotR  = ringR * 0.45;
-    const s     = dotR / FLOWER_RADIUS;
+    const s = dotR / FLOWER_RADIUS;
     flowerG.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-300,-300)`);
+  }
+  const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
+  if (treeG) {
+    const s = dotR / TREE_RADIUS;
+    treeG.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-355.5,-140.3)`);
   }
 }
 
@@ -691,6 +731,11 @@ function applyCalibration(): void {
           const s = dotR / FLOWER_RADIUS;
           flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
         }
+        const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
+        if (treeG) {
+          const s = dotR / TREE_RADIUS;
+          treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
+        }
       }
     }
     if (selectedData) updateInfoPanel(selectedData);
@@ -820,6 +865,11 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
         for (const p of flowerG.querySelectorAll('.petal-fill')) {
           (p as SVGElement).setAttribute('fill', color);
         }
+      }
+      const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
+      if (treeG) {
+        const s = dotR / TREE_RADIUS;
+        treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
       }
     }
   }
