@@ -1,6 +1,6 @@
 import type { Plant } from './types';
 import rawData      from './data/plants-raw.json';
-import enrichedData from './data/plants-enriched-sample.json';
+import enrichedData from './data/plants-enriched.json';
 
 interface RawPlant {
   name: string;
