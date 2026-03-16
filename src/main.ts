@@ -230,6 +230,7 @@ function makeLabelEl(): LabelEl {
     tx.setAttribute('dominant-baseline', 'middle');
   }
   g.appendChild(bg); g.appendChild(tx1); g.appendChild(tx2);
+  g.style.display = 'none';
   labelLayer.appendChild(g);
   return { g, bg, tx1, tx2 };
 }
@@ -342,8 +343,20 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
     ? createTreeMarker(x, y, dotR, plant.color)
     : createFlowerMarker(x, y, dotR, plant.color);
 
+  const selCircle = document.createElementNS(NS, 'circle') as SVGCircleElement;
+  selCircle.setAttribute('cx', String(x));
+  selCircle.setAttribute('cy', String(y));
+  selCircle.setAttribute('r', String(dotR * 1.3));
+  selCircle.setAttribute('fill', 'none');
+  selCircle.setAttribute('stroke', '#ff9800');
+  selCircle.setAttribute('stroke-width', '2.5');
+  selCircle.style.pointerEvents = 'none';
+  selCircle.style.display = 'none';
+  selCircle.classList.add('sel-circle');
+
   g.appendChild(ring);
   g.appendChild(iconG);
+  g.appendChild(selCircle);
   markersLayer.appendChild(g);
   return g;
 }
@@ -481,8 +494,8 @@ const DEF_SW     = '1.5';
 
 function deselectMarker(): void {
   if (!selectedMarker) return;
-  const circles = selectedMarker.el.querySelectorAll('circle');
-  if (circles[1]) circles[1].setAttribute('stroke-width', '1.5');
+  const sel = selectedMarker.el.querySelector('.sel-circle') as SVGCircleElement | null;
+  if (sel) sel.style.display = 'none';
   selectedMarker = null;
   selectedMarkerShape = null;
 }
@@ -493,13 +506,14 @@ function selectMarker(m: PlantMarker, shape: ShapeData): void {
   if (selectedData) {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
+    if (selectedData.labelEl) selectedData.labelEl.g.style.display = 'none';
     selectedData = null;
     updateInfoPanel(null);
   }
   selectedMarker = m;
   selectedMarkerShape = shape;
-  const circles = m.el.querySelectorAll('circle');
-  if (circles[1]) circles[1].setAttribute('stroke-width', '3');
+  const sel = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
+  if (sel) sel.style.display = '';
   deleteBtn.disabled = false;
 }
 
@@ -508,11 +522,14 @@ function selectShape(d: ShapeData | null): void {
   if (selectedData) {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
+    if (selectedData.labelEl) selectedData.labelEl.g.style.display = 'none';
   }
   selectedData = d;
   if (d) {
     d.el.setAttribute('stroke', SEL_STROKE);
     d.el.setAttribute('stroke-width', SEL_SW);
+    updateLabelEl(d);
+    if (d.labelEl) d.labelEl.g.style.display = '';
   }
   updateInfoPanel(d);
 }
@@ -535,6 +552,8 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
     const s = dotR / TREE_RADIUS;
     treeG.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-355.5,-140.3)`);
   }
+  const selCircle = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
+  if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
 }
 
 function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
@@ -730,6 +749,8 @@ function applyCalibration(): void {
           const s = dotR / TREE_RADIUS;
           treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
         }
+        const selCircle = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
+        if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
       }
     }
     if (selectedData) updateInfoPanel(selectedData);
