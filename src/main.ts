@@ -357,6 +357,12 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   g.appendChild(ring);
   g.appendChild(iconG);
   g.appendChild(selCircle);
+
+  if (plant.image_url || plant.scientific_name) {
+    g.addEventListener('mouseenter', () => showImgTooltip(plant, g));
+    g.addEventListener('mouseleave', hideImgTooltip);
+  }
+
   markersLayer.appendChild(g);
   return g;
 }
@@ -440,7 +446,8 @@ function renderUsedPlants(): void {
   const seen = new Map<string, Plant>();
   for (const d of shapes) {
     for (const m of d.plantMarkers) {
-      if (!seen.has(m.plant.name)) seen.set(m.plant.name, m.plant);
+      const key = m.plant.slug ?? m.plant.scientific_name ?? m.plant.name;
+      if (!seen.has(key)) seen.set(key, m.plant);
     }
   }
   if (seen.size === 0) {
@@ -454,37 +461,45 @@ function renderUsedPlants(): void {
 }
 
 function updateSummary(): void {
-  const totals: Record<string, { count: number; color: string }> = {};
+  const totals = new Map<string, { count: number; plant: Plant }>();
   for (const d of shapes) {
     for (const m of d.plantMarkers) {
-      const n = m.plant.name;
-      if (!totals[n]) totals[n] = { count: 0, color: m.plant.color };
-      totals[n].count++;
+      const key = m.plant.slug ?? m.plant.scientific_name ?? m.plant.name;
+      const entry = totals.get(key);
+      if (entry) entry.count++;
+      else totals.set(key, { count: 1, plant: m.plant });
     }
   }
-  const entries = Object.entries(totals);
   renderUsedPlants();
-  if (entries.length === 0) {
+  if (totals.size === 0) {
     summaryContent.innerHTML = '<div class="info-empty">No plants placed yet.</div>';
     return;
   }
+  summaryContent.innerHTML = '';
   let grandTotal = 0;
-  let html = '';
-  for (const [name, { count, color }] of entries) {
+  for (const { count, plant } of totals.values()) {
     grandTotal += count;
-    html += `<div class="summary-row">
+    const displayName = plant.scientific_name ?? plant.name;
+    const row = document.createElement('div');
+    row.className = 'summary-row';
+    row.innerHTML = `
       <span class="summary-name">
-        <span class="summary-swatch" style="background:${color}"></span>${name}
+        <span class="summary-swatch" style="background:${plant.color}"></span>${displayName}
       </span>
-      <span class="summary-count">${count}</span>
-    </div>`;
+      <span class="summary-count">${count}</span>`;
+    if (plant.image_url || plant.scientific_name) {
+      row.addEventListener('mouseenter', () => showImgTooltip(plant, row));
+      row.addEventListener('mouseleave', hideImgTooltip);
+    }
+    summaryContent.appendChild(row);
   }
-  html += `<hr class="info-divider">
-    <div class="summary-row summary-total">
-      <span>Total</span>
-      <span class="summary-count">${grandTotal}</span>
-    </div>`;
-  summaryContent.innerHTML = html;
+  const divider = document.createElement('hr');
+  divider.className = 'info-divider';
+  summaryContent.appendChild(divider);
+  const total = document.createElement('div');
+  total.className = 'summary-row summary-total';
+  total.innerHTML = `<span>Total</span><span class="summary-count">${grandTotal}</span>`;
+  summaryContent.appendChild(total);
 }
 
 // ── Selection ──────────────────────────────────────────────────────────────
@@ -916,6 +931,50 @@ document.addEventListener('click', (e) => {
   if (editTarget && !editPopover.contains(e.target as Node)) closeEditPopover();
 });
 
+// ── Plant image tooltip ─────────────────────────────────────────────────────
+// ── Plant image tooltip ─────────────────────────────────────────────────────
+const imgTooltip    = document.getElementById('plant-img-tooltip') as HTMLDivElement;
+const imgTipImg     = document.getElementById('plant-tip-img')     as HTMLImageElement;
+const imgTipSci     = document.getElementById('plant-tip-sci')     as HTMLDivElement;
+const imgTipName    = document.getElementById('plant-tip-name')    as HTMLDivElement;
+const imgTipMeta    = document.getElementById('plant-tip-meta')    as HTMLDivElement;
+let imgTooltipTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showImgTooltip(plant: Plant, chipEl: Element): void {
+  if (imgTooltipTimer) clearTimeout(imgTooltipTimer);
+  imgTooltipTimer = setTimeout(() => {
+    // Hide image immediately; show only once the new src has loaded
+    imgTipImg.style.display = 'none';
+    imgTipImg.onload  = () => { imgTipImg.style.display = 'block'; };
+    imgTipImg.onerror = () => { imgTipImg.style.display = 'none'; };
+    imgTipImg.src = plant.image_url ?? '';
+
+    imgTipSci.textContent  = plant.scientific_name ?? '';
+    imgTipName.textContent = plant.name ?? '';
+    const metaLines: string[] = [];
+    if (plant.family)       metaLines.push(`Family: ${plant.family}`);
+    if (plant.genus)        metaLines.push(`Genus: ${plant.genus}`);
+    if (plant.growth_habit) metaLines.push(`Habit: ${plant.growth_habit}`);
+    imgTipMeta.innerHTML = metaLines.join('<br>');
+
+    imgTooltip.style.display = 'block';
+    const rect = chipEl.getBoundingClientRect();
+    const tipW = 216;
+    const left = rect.right + 8 + tipW > window.innerWidth
+      ? rect.left - tipW - 8
+      : rect.right + 8;
+    imgTooltip.style.left = left + 'px';
+    imgTooltip.style.top  = Math.min(rect.top, window.innerHeight - 220) + 'px';
+  }, 300);
+}
+
+function hideImgTooltip(): void {
+  if (imgTooltipTimer) { clearTimeout(imgTooltipTimer); imgTooltipTimer = null; }
+  imgTooltip.style.display = 'none';
+  imgTipImg.onload  = null;
+  imgTipImg.onerror = null;
+}
+
 function makeChip(plant: Plant): HTMLDivElement {
   const override  = plant.slug ? getOverride(plant.slug) : null;
   const effective = { ...plant, spacing: override?.spacing ?? plant.spacing, color: override?.color ?? plant.color };
@@ -926,7 +985,7 @@ function makeChip(plant: Plant): HTMLDivElement {
   chip.dataset.plantJson = JSON.stringify(effective);
   chip.innerHTML = `
     <span class="chip-swatch" style="background:${effective.color}"></span>
-    <span class="chip-name">${plant.name}</span>
+    <span class="chip-name">${plant.scientific_name ?? plant.name}</span>
     ${plant.slug ? '<button class="chip-edit-btn" draggable="false" title="Edit spacing / colour">✎</button>' : ''}
   `;
   chip.addEventListener('dragstart', (e: DragEvent) => {
@@ -935,6 +994,12 @@ function makeChip(plant: Plant): HTMLDivElement {
     chip.classList.add('dragging');
   });
   chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+
+  if (plant.image_url || plant.scientific_name) {
+    chip.addEventListener('mouseenter', () => showImgTooltip(plant, chip));
+    chip.addEventListener('mouseleave', hideImgTooltip);
+    chip.addEventListener('dragstart',  hideImgTooltip);
+  }
 
   const editBtn = chip.querySelector('.chip-edit-btn') as HTMLButtonElement | null;
   if (editBtn) {

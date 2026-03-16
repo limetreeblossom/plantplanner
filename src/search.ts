@@ -107,11 +107,16 @@ function rawToPlant(raw: RawPlant): Plant {
       : isTree ? DEFAULT_SPACING_TREE : DEFAULT_SPACING;
 
   return {
-    name:    raw.name,
-    slug:    raw.slug,
-    spacing: Math.max(0.10, Math.min(spacing, 3.0)), // clamp to sensible range
-    color:   flowerHex ?? FAMILY_COLORS[raw.family] ?? DEFAULT_COLOR,
-    ...(isTree && { icon: 'tree' as const }),
+    name:            raw.name,
+    slug:            raw.slug,
+    spacing:         Math.max(0.10, Math.min(spacing, 3.0)),
+    color:           flowerHex ?? FAMILY_COLORS[raw.family] ?? DEFAULT_COLOR,
+    ...(isTree                  && { icon:            'tree' as const }),
+    ...(raw.image_url           && { image_url:        raw.image_url }),
+    ...(raw.scientific_name     && { scientific_name:  raw.scientific_name }),
+    ...(raw.family              && { family:           raw.family }),
+    ...(raw.genus               && { genus:            raw.genus }),
+    ...(enriched?.growth_habit  && { growth_habit:     enriched.growth_habit }),
   };
 }
 

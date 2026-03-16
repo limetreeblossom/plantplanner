@@ -4,6 +4,11 @@ export interface Plant {
   color: string;   // CSS hex color
   slug?: string;   // Trefle slug, present on search results
   icon?: 'flower' | 'tree';
+  image_url?: string;
+  scientific_name?: string;
+  family?: string;
+  genus?: string;
+  growth_habit?: string;
 }
 
 export interface PlantMarker {
