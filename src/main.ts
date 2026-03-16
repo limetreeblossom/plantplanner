@@ -22,6 +22,23 @@ const STROKE_COLORS: string[] = [
 ];
 let colorIndex = 0;
 
+// ── Flower icon (vectorizer.io trace, viewBox 0 0 600 600, centre 300 300) ─
+const FLOWER_RADIUS = 270; // px from centre to petal tip in viewBox coords
+const FLOWER_OUTLINE_D = 'M298.13 569.24 c-27.60 -3.93 -46.46 -16.93 -56.72 -39.20 -3.98 -8.61 -8.79 -26.02 -8.79 -31.76 0 -0.76 -0.18 -1.41 -0.35 -1.41 -0.23 0 -2.93 2.46 -6.09 5.45 -12.19 11.72 -23.09 18.87 -35.27 23.14 -7.21 2.58 -14.06 3.63 -23.38 3.63 -12.77 0 -20.98 -1.82 -32.58 -7.32 -11.60 -5.51 -21.21 -12.48 -29.88 -21.62 -8.03 -8.50 -12.66 -16.29 -15.82 -26.72 -2.17 -7.15 -2.58 -21.15 -0.88 -29.30 0.64 -3.05 1.35 -5.98 1.52 -6.45 0.29 -0.64 -0.41 -1.17 -2.70 -1.99 -23.38 -8.20 -41.13 -30.12 -48.57 -59.77 -0.88 -3.52 -1.29 -7.44 -1.52 -15.29 -0.41 -13.71 0.59 -19.10 5.33 -28.65 5.10 -10.37 12.07 -18.28 22.44 -25.37 2.46 -1.70 4.22 -3.11 3.81 -3.11 -1.46 0 -13.30 -8.55 -17.99 -13.01 -10.49 -9.90 -15.88 -18.81 -19.39 -31.99 -2.05 -7.79 -2.58 -21.45 -1.17 -31.05 3.87 -26.19 16.35 -47.29 34.22 -57.83 4.98 -2.93 15.53 -6.56 20.51 -7.09 4.98 -0.53 5.04 -0.64 3.93 -4.69 -1.52 -5.39 -1.88 -20.86 -0.59 -27.19 2.70 -13.13 8.85 -23.32 21.33 -35.33 23.44 -22.38 54.02 -30.35 81.33 -21.15 6.50 2.17 14.36 6.27 20.68 10.78 5.63 3.98 19.57 16.29 20.10 17.70 0.41 1.11 0.64 0.12 2.17 -8.61 2.70 -15.64 9.08 -30.06 17.87 -40.31 12.36 -14.47 32.52 -22.97 57.42 -24.26 19.75 -1 40.90 4.92 52.68 14.71 10.90 9.14 17.23 19.57 21.33 35.33 l1.58 5.92 4.39 -2.93 c11.72 -7.73 23.50 -11.43 38.09 -12.01 12.66 -0.47 23.73 1.93 36.04 8.03 12.66 6.15 23.14 14.12 31 23.44 14.47 17.17 18.52 34.45 13.54 57.77 l-0.41 1.82 4.04 0.41 c15.06 1.58 27.54 7.62 37.38 18.05 9.67 10.31 16.70 24.61 20.33 41.66 1.70 8.20 1.88 26.31 0.29 33.81 -4.28 19.69 -14.41 33.40 -33.63 45.47 -2.75 1.76 -4.80 3.16 -4.45 3.16 0.29 0 3.16 1.93 6.39 4.28 12.01 8.85 20.04 20.04 23.79 33.05 1.23 4.10 1.35 5.86 1.35 16.88 0 11.43 -0.12 12.77 -1.58 18.46 -5.74 22.50 -17.99 41.13 -34.28 51.91 -4.98 3.34 -12.01 6.68 -16.76 7.91 -1.52 0.41 -2.75 1.05 -2.75 1.41 0.06 0.29 0.41 2.29 0.88 4.39 2.11 9.32 1.76 21.74 -0.94 32.05 -3.69 14.18 -16.29 29.59 -33.05 40.61 -5.80 3.75 -16.11 8.85 -21.97 10.78 -13.83 4.57 -32.75 4.39 -46.29 -0.35 -5.98 -2.11 -13.13 -5.68 -17.70 -8.73 -1.82 -1.29 -3.46 -2.29 -3.57 -2.29 -0.12 0 -0.59 1.52 -1 3.40 -1.23 5.68 -4.63 14.82 -7.38 19.80 -9.38 17.34 -23.50 26.84 -46.23 31.05 -7.15 1.29 -24.55 1.64 -32.05 0.53z';
+const FLOWER_CENTER_D = 'M295.31 333.98 c-4.51 -0.59 -10.90 -2.87 -14.77 -5.33 -3.63 -2.34 -9.14 -8.26 -11.19 -12.07 -5.21 -9.67 -5.10 -23.50 0.29 -33.75 3.87 -7.38 12.77 -14.24 21.33 -16.46 4.57 -1.17 14.12 -1.23 18.40 -0.06 6.04 1.58 10.55 4.28 15.18 9.02 6.91 7.15 10.02 14.88 10.02 25.25 0 8.73 -3.05 16.29 -9.38 23.03 -7.68 8.26 -18.05 11.84 -29.88 10.37z';
+const FLOWER_PETAL_DS: string[] = [
+  'M304.75 543.69 c-14.88 -1.76 -27.95 -8.91 -35.57 -19.63 -12.42 -17.40 -16 -45.64 -10.49 -82.62 3.57 -24.08 11.13 -53.26 19.16 -73.95 2.11 -5.45 2.52 -6.04 3.63 -5.80 0.64 0.18 3.34 0.82 5.92 1.46 2.58 0.64 6.50 1.41 8.73 1.70 l4.04 0.47 3.34 10.25 c13.65 41.78 31.52 77.93 52.27 105.94 l5.80 7.85 -0.64 6.56 c-1.70 17.05 -5.51 26.78 -13.77 35.27 -9.90 10.08 -24.96 14.47 -42.42 12.48z',
+  'M158.85 501.86 c-6.04 -1.35 -9.43 -2.58 -15.12 -5.57 -18.52 -9.67 -29.47 -25.02 -29.47 -41.43 0 -24.90 26.07 -57.01 72.07 -88.89 15.88 -11.02 31.29 -20.33 50.45 -30.47 l7.44 -3.87 2.81 3.93 c1.58 2.23 5.04 6.27 7.73 9.08 l4.92 5.10 -2.93 8.09 c-10.43 28.83 -18.28 59.82 -21.27 83.67 l-1.23 9.96 -2.64 4.10 c-15.47 23.73 -33.98 40.20 -50.86 45.12 -6.62 1.93 -16.29 2.46 -21.91 1.17z',
+  'M421.17 501.80 c-12.48 -2.23 -22.73 -8.32 -35.68 -21.27 -18.16 -18.16 -34.51 -45.70 -49.57 -83.55 -4.57 -11.48 -12.48 -34.39 -12.48 -36.21 0 -0.64 1.29 -1.64 3.75 -2.87 l3.81 -1.88 4.57 4.10 c18.98 16.99 43.59 35.27 63.34 47.05 26.48 15.76 48.69 24.90 70.14 28.77 3.87 0.70 7.62 1.41 8.32 1.52 1.70 0.29 2.87 3.05 4.34 9.90 1.41 6.74 1.41 10.72 -0.06 16.46 -2.58 10.20 -8.38 18.52 -18.16 25.96 -8.50 6.50 -16.58 10.31 -25.72 12.01 -5.80 1.11 -10.49 1.11 -16.58 0z',
+  'M478.42 413.91 c-27.71 -2.64 -59.77 -17.87 -98.44 -46.88 -11.02 -8.26 -30.64 -24.55 -30.70 -25.55 -0.06 -0.23 1.41 -2.40 3.16 -4.86 1.76 -2.46 4.16 -6.45 5.39 -8.91 1.82 -3.63 2.34 -4.28 3.34 -4.04 8.44 2.05 64.45 2.58 81.56 0.76 18.93 -1.99 33.81 -4.39 47.34 -7.79 l8.14 -1.99 6.80 3.57 c8.50 4.45 13.30 7.79 18.57 13.07 7.32 7.32 10.72 13.71 11.95 22.68 2.99 21.62 -10.37 46.41 -29.94 55.61 -2.05 0.94 -5.74 2.23 -8.20 2.87 -4.39 1.11 -14.41 1.88 -18.98 1.46z',
+  'M99.32 411.39 c-7.32 -2.64 -14.71 -7.38 -19.45 -12.54 -11.02 -12.07 -17.40 -30.12 -15.59 -43.95 1.29 -9.55 4.63 -16.05 12.19 -23.55 10.90 -10.96 26.89 -18.63 51.68 -24.84 24.49 -6.09 47.87 -8.73 83.44 -9.26 l23.20 -0.35 0.41 5.21 c0.23 2.87 0.53 5.92 0.70 6.74 0.29 1.46 -0.12 1.82 -9.26 6.56 -29.30 15.23 -57.01 33.63 -81.62 54.08 -13.07 10.90 -28.95 27.54 -37.97 39.96 -2.52 3.40 -3.11 3.57 -7.73 1.93z',
+  'M387.60 302.93 c-5.16 -0.23 -12.30 -0.64 -15.88 -0.88 l-6.50 -0.41 -0.41 -5.27 c-0.23 -2.87 -0.53 -5.98 -0.70 -6.91 -0.35 -1.52 -0.06 -1.76 8.26 -6.09 24.49 -12.89 54.14 -32.29 73.83 -48.34 17.29 -14.06 35.63 -32.70 43.07 -43.77 2.75 -4.16 3.16 -4.34 8.44 -4.34 13.13 0 23.14 4.04 31.23 12.48 8.79 9.08 13.95 21.80 14.65 35.68 0.59 11.78 -1.70 20.80 -7.50 29.47 -3.40 5.10 -10.55 11.95 -16.46 15.88 -14.18 9.32 -37.15 16.46 -64.63 20.16 -16.23 2.11 -48.69 3.28 -67.38 2.34z',
+  'M97.79 289.16 c-5.92 -2.52 -13.77 -6.50 -16.93 -8.67 -17.58 -11.84 -25.49 -26.54 -24.43 -45.41 0.41 -7.21 1.76 -13.07 4.80 -20.39 6.91 -16.76 20.16 -26.54 37.27 -27.60 l5.57 -0.35 2.87 3.75 c13.59 17.93 31.88 35.68 54.79 53.09 9.73 7.38 30.12 21.15 39.43 26.54 3.46 1.99 6.45 3.87 6.62 4.16 0.18 0.29 -2.29 0.53 -5.45 0.53 -7.50 0 -26.66 1.46 -38.85 2.93 -19.39 2.40 -39.14 6.39 -53.96 10.96 l-7.38 2.29 -4.34 -1.82z',
+  'M237.25 264.32 c-25.43 -12.77 -54.67 -31.88 -76.41 -49.92 -8.67 -7.15 -25.14 -23.96 -30.53 -31.11 -7.32 -9.79 -12.30 -19.28 -14.71 -28.01 -1.46 -5.39 -1.46 -16.64 0.06 -21.09 5.39 -15.76 19.34 -28.77 37.32 -34.80 19.16 -6.45 38.26 -0.23 57.66 18.81 19.98 19.51 39.61 54.32 55.49 98.26 4.22 11.78 8.32 24.43 7.97 24.67 -0.12 0.06 -2.17 1.23 -4.57 2.64 -8.26 4.75 -16.76 12.60 -22.32 20.45 -1.35 1.93 -2.64 3.57 -2.81 3.57 -0.23 0 -3.40 -1.52 -7.15 -3.46z',
+  'M353.14 264.38 c-0.76 -1.23 -2.93 -4.04 -4.80 -6.15 l-3.34 -3.98 4.98 -10.96 c13.30 -29.36 23.91 -61.46 29.71 -90.06 1.99 -9.67 4.10 -25.08 4.10 -29.77 0 -2.99 0.06 -3.11 3.98 -6.80 12.07 -11.43 24.32 -17.81 37.03 -19.45 20.16 -2.58 46.41 12.89 54.55 32.23 4.28 10.20 4.10 21.45 -0.53 33.52 -7.44 19.34 -32.87 46.23 -64.57 68.32 -18.34 12.71 -33.52 22.03 -50.16 30.70 -4.86 2.58 -8.96 4.63 -9.14 4.63 -0.18 0 -1 -1 -1.82 -2.23z',
+  'M320.80 239 c-5.98 -2.29 -10.90 -3.28 -18.34 -3.81 l-5.98 -0.41 -1.17 -4.16 c-7.56 -26.07 -22.44 -61.17 -36.09 -84.96 l-3.28 -5.74 0.29 -13.59 c0.53 -25.02 4.86 -40.55 14.65 -52.79 9.84 -12.25 25.84 -18.57 44.88 -17.70 8.55 0.41 13.13 1.46 19.69 4.51 6.27 2.93 11.07 6.68 14.77 11.54 5.80 7.68 8.79 16.29 10.49 30.35 3.46 28.24 -6.80 73.89 -27.13 121.52 -4.10 9.55 -7.62 17.11 -7.97 16.99 -0.06 0 -2.23 -0.82 -4.80 -1.76z',
+];
+
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const svgEl          = document.getElementById('canvas') as SVGSVGElement;
 const bgLayer        = document.getElementById('bg-layer') as SVGGElement;
@@ -246,15 +263,40 @@ function removeLabelEl(d: ShapeData): void {
   if (d.labelEl) { d.labelEl.g.remove(); d.labelEl = null; }
 }
 
+// ── Flower path helper ──────────────────────────────────────────────────────
+/** Builds a scaled flower icon <g> centred at (x, y) with the given dotR and plant color. */
+function createFlowerMarker(x: number, y: number, dotR: number, color: string): SVGGElement {
+  const s = dotR / FLOWER_RADIUS;
+  const g = document.createElementNS(NS, 'g') as SVGGElement;
+  g.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-300,-300)`);
+  g.classList.add('flower-icon');
+
+  const outline = document.createElementNS(NS, 'path') as SVGPathElement;
+  outline.setAttribute('d', FLOWER_OUTLINE_D);
+  outline.setAttribute('fill', '#1a1a1a');
+  g.appendChild(outline);
+
+  for (const d of FLOWER_PETAL_DS) {
+    const p = document.createElementNS(NS, 'path') as SVGPathElement;
+    p.setAttribute('d', d);
+    p.setAttribute('fill', color);
+    p.classList.add('petal-fill');
+    g.appendChild(p);
+  }
+
+  const center = document.createElementNS(NS, 'path') as SVGPathElement;
+  center.setAttribute('d', FLOWER_CENTER_D);
+  center.setAttribute('fill', '#fff');
+  g.appendChild(center);
+
+  return g;
+}
+
 // ── Marker creation ────────────────────────────────────────────────────────
 function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   const g = document.createElementNS(NS, 'g') as SVGGElement;
   g.dataset['marker'] = '1';
   g.style.cursor = 'pointer';
-
-  const isDark = plant.color !== '#e0e0e0' && plant.color !== '#ffca28';
-  const textFill    = isDark ? '#fff' : '#555';
-  const strokeColor = isDark ? '#fff' : '#aaa';
 
   const ring = document.createElementNS(NS, 'circle') as SVGCircleElement;
   ring.setAttribute('cx', String(x));
@@ -269,30 +311,10 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   ring.classList.add('spacing-ring');
 
   const dotR = (plant.spacing / 2) * sessionScale * 0.45;
-
-  const circle = document.createElementNS(NS, 'circle') as SVGCircleElement;
-  circle.setAttribute('cx', String(x));
-  circle.setAttribute('cy', String(y));
-  circle.setAttribute('r', String(dotR));
-  circle.setAttribute('fill', plant.color);
-  circle.setAttribute('stroke', strokeColor);
-  circle.setAttribute('stroke-width', '1.5');
-
-  const text = document.createElementNS(NS, 'text') as SVGTextElement;
-  text.setAttribute('x', String(x));
-  text.setAttribute('y', String(y));
-  text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('dominant-baseline', 'middle');
-  text.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
-  text.setAttribute('font-weight', '700');
-  text.setAttribute('font-family', 'system-ui,sans-serif');
-  text.setAttribute('fill', textFill);
-  text.style.pointerEvents = 'none';
-  text.textContent = plant.name.charAt(0).toUpperCase();
+  const flowerG = createFlowerMarker(x, y, dotR, plant.color);
 
   g.appendChild(ring);
-  g.appendChild(circle);
-  g.appendChild(text);
+  g.appendChild(flowerG);
   markersLayer.appendChild(g);
   return g;
 }
@@ -472,8 +494,13 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
   m.el.querySelectorAll('circle').forEach(c => {
     c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y));
   });
-  const t = m.el.querySelector('text');
-  if (t) { t.setAttribute('x', String(x)); t.setAttribute('y', String(y)); }
+  const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
+  if (flowerG) {
+    const ringR = (m.plant.spacing / 2) * sessionScale;
+    const dotR  = ringR * 0.45;
+    const s     = dotR / FLOWER_RADIUS;
+    flowerG.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-300,-300)`);
+  }
 }
 
 function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
@@ -653,15 +680,17 @@ function applyCalibration(): void {
     for (const s of shapes) updateLabelEl(s);
     for (const s of shapes) {
       for (const m of s.plantMarkers) {
-        const ringR = (m.plant.spacing / 2) * sessionScale;
-        const dotR  = ringR * 0.45;
-        const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
+        const ringR   = (m.plant.spacing / 2) * sessionScale;
+        const dotR    = ringR * 0.45;
+        const ring    = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
         if (ring) ring.setAttribute('r', String(ringR));
-        const circles = m.el.querySelectorAll('circle');
-        const dot = circles[1] as SVGCircleElement | undefined;
-        if (dot) dot.setAttribute('r', String(dotR));
-        const txt = m.el.querySelector('text') as SVGTextElement | null;
-        if (txt) txt.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
+        const cx      = parseFloat(ring?.getAttribute('cx') ?? '0');
+        const cy      = parseFloat(ring?.getAttribute('cy') ?? '0');
+        const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
+        if (flowerG) {
+          const s = dotR / FLOWER_RADIUS;
+          flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
+        }
       }
     }
     if (selectedData) updateInfoPanel(selectedData);
@@ -776,20 +805,21 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
       if (m.plant.slug !== slug) continue;
       m.plant.spacing = spacing;
       m.plant.color   = color;
-      const ringR = (spacing / 2) * sessionScale;
-      const dotR  = Math.max(5, ringR * 0.45);
-      const circles = m.el.querySelectorAll('circle');
-      const ring = circles[0] as SVGCircleElement; // spacing-ring
-      const dot  = circles[1] as SVGCircleElement; // filled dot
+      const ringR   = (spacing / 2) * sessionScale;
+      const dotR    = ringR * 0.45;
+      const ring    = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
+      if (!ring) continue;
       ring.setAttribute('r',      String(ringR));
       ring.setAttribute('stroke', color);
-      dot.setAttribute('r',      String(dotR));
-      dot.setAttribute('fill',   color);
-      dot.setAttribute('stroke', isDark(color) ? '#fff' : '#aaa');
-      const txt = m.el.querySelector('text') as SVGTextElement | null;
-      if (txt) {
-        txt.setAttribute('fill', isDark(color) ? '#fff' : '#555');
-        txt.setAttribute('font-size', String(Math.max(7, Math.round(dotR * 1.3))));
+      const cx      = parseFloat(ring.getAttribute('cx') ?? '0');
+      const cy      = parseFloat(ring.getAttribute('cy') ?? '0');
+      const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
+      if (flowerG) {
+        const s = dotR / FLOWER_RADIUS;
+        flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
+        for (const p of flowerG.querySelectorAll('.petal-fill')) {
+          (p as SVGElement).setAttribute('fill', color);
+        }
       }
     }
   }
