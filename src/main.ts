@@ -14,6 +14,7 @@ import {
 
 import { buildChipEl } from './chips';
 import { buildExportRows } from './export';
+import { applyRingsToggle, applyGridToggle, applyBgToggle } from './toggles';
 import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
 import {
   SCALE,
@@ -582,19 +583,13 @@ fillModeBtn.addEventListener('click', () => {
 
 // ── Visibility toggles ─────────────────────────────────────────────────────
 const ringsToggle = document.getElementById('rings-toggle') as HTMLInputElement;
-ringsToggle.addEventListener('change', () => {
-  document.body.classList.toggle('hide-rings', !ringsToggle.checked);
-});
+ringsToggle.addEventListener('change', () => applyRingsToggle(document.body, ringsToggle.checked));
 
 const gridToggle = document.getElementById('grid-toggle') as HTMLInputElement;
-gridToggle.addEventListener('change', () => {
-  document.body.classList.toggle('hide-grid', !gridToggle.checked);
-});
+gridToggle.addEventListener('change', () => applyGridToggle(document.body, gridToggle.checked));
 
 const bgToggle = document.getElementById('bg-toggle') as HTMLInputElement;
-bgToggle.addEventListener('change', () => {
-  document.body.classList.toggle('hide-bg', !bgToggle.checked);
-});
+bgToggle.addEventListener('change', () => applyBgToggle(document.body, bgToggle.checked));
 
 // ── Polygon drawing helpers ────────────────────────────────────────────────
 function clearPolygon(): void {
