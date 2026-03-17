@@ -127,6 +127,38 @@ export function buildMarkerEl(plant: Plant, x: number, y: number, scale: number)
   return g;
 }
 
+// ── Override apply (updates ring radius, icon transform, petal color) ────────
+
+export function applyOverrideToEl(
+  el: SVGGElement,
+  spacing: number,
+  color: string,
+  scale: number,
+): void {
+  const ring = el.querySelector<SVGCircleElement>('.spacing-ring');
+  if (!ring) return;
+  const ringR = (spacing / 2) * scale;
+  const dotR = ringR * 0.45;
+  ring.setAttribute('r', String(ringR));
+  const cx = parseFloat(ring.getAttribute('cx') ?? '0');
+  const cy = parseFloat(ring.getAttribute('cy') ?? '0');
+
+  const flowerG = el.querySelector<SVGGElement>('.flower-icon');
+  if (flowerG) {
+    const s = dotR / FLOWER_RADIUS;
+    flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
+    for (const p of flowerG.querySelectorAll('.petal-fill')) {
+      (p as SVGElement).setAttribute('fill', color);
+    }
+  }
+
+  const treeG = el.querySelector<SVGGElement>('.tree-icon');
+  if (treeG) {
+    const s = dotR / TREE_RADIUS;
+    treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
+  }
+}
+
 // ── Selection helpers ────────────────────────────────────────────────────────
 
 export function showMarkerSelection(el: SVGGElement): void {

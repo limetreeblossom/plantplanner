@@ -9,6 +9,7 @@ import {
   buildMarkerEl,
   showMarkerSelection,
   hideMarkerSelection,
+  applyOverrideToEl,
 } from './markers';
 
 import { buildChipEl } from './chips';
@@ -873,32 +874,7 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
       if (m.plant.slug !== slug) continue;
       m.plant.spacing = spacing;
       m.plant.color = color;
-      const ringR = (spacing / 2) * sessionScale;
-      const dotR = ringR * 0.45;
-      const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
-      if (!ring) continue;
-      ring.setAttribute('r', String(ringR));
-      const cx = parseFloat(ring.getAttribute('cx') ?? '0');
-      const cy = parseFloat(ring.getAttribute('cy') ?? '0');
-      const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
-      if (flowerG) {
-        const s = dotR / FLOWER_RADIUS;
-        flowerG.setAttribute(
-          'transform',
-          `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`,
-        );
-        for (const p of flowerG.querySelectorAll('.petal-fill')) {
-          (p as SVGElement).setAttribute('fill', color);
-        }
-      }
-      const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
-      if (treeG) {
-        const s = dotR / TREE_RADIUS;
-        treeG.setAttribute(
-          'transform',
-          `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`,
-        );
-      }
+      applyOverrideToEl(m.el, spacing, color, sessionScale);
     }
   }
   renderUsedPlants();
