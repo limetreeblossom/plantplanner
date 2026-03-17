@@ -26,8 +26,8 @@ import {
   pointInShape,
   calcScale,
   polygonSelfIntersects,
-  shapeBoundingBox,
   calcFillCount,
+  computeFillPositions,
 } from './geometry';
 import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './types';
 
@@ -1047,25 +1047,14 @@ function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
     return;
   }
 
-  const stepPx = plant.spacing * sessionScale;
-  const bb = shapeBoundingBox(shape);
+  const existingPositions = shape.plantMarkers.map((m) => ({ x: m.x, y: m.y }));
+  const positions = computeFillPositions(shape, plant.spacing, sessionScale, existingPositions);
   let placed = 0;
 
-  for (let gy = bb.y + stepPx / 2; gy < bb.y + bb.h; gy += stepPx) {
-    for (let gx = bb.x + stepPx / 2; gx < bb.x + bb.w; gx += stepPx) {
-      if (!pointInShape(shape, gx, gy)) continue;
-      // Skip if too close to any existing marker
-      const occupied = shape.plantMarkers.some((m) => {
-        const dx = m.x - gx,
-          dy = m.y - gy;
-        return Math.sqrt(dx * dx + dy * dy) < stepPx * 0.9;
-      });
-      if (occupied) continue;
-
-      const filledMarkerEl = createMarkerEl(plant, gx, gy);
-      shape.plantMarkers.push({ plant, x: gx, y: gy, el: filledMarkerEl });
-      placed++;
-    }
+  for (const { x: gx, y: gy } of positions) {
+    const filledMarkerEl = createMarkerEl(plant, gx, gy);
+    shape.plantMarkers.push({ plant, x: gx, y: gy, el: filledMarkerEl });
+    placed++;
   }
 
   if (placed === 0) {
