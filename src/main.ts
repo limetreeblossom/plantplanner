@@ -2,9 +2,18 @@ import * as XLSX from 'xlsx';
 import { searchPlants } from './search';
 import { getOverride, setOverride } from './plantStore';
 import {
-  SCALE, CANVAS_W, CANVAS_H,
-  pxToM, fmt, calcArea, shapeCentroid, pointInShape, calcScale, polygonSelfIntersects,
-  shapeBoundingBox, calcFillCount,
+  SCALE,
+  CANVAS_W,
+  CANVAS_H,
+  pxToM,
+  fmt,
+  calcArea,
+  shapeCentroid,
+  pointInShape,
+  calcScale,
+  polygonSelfIntersects,
+  shapeBoundingBox,
+  calcFillCount,
 } from './geometry';
 import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './types';
 
@@ -12,21 +21,25 @@ import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './typ
 const NS = 'http://www.w3.org/2000/svg';
 const SNAP_RADIUS = 12; // px — distance within which cursor snaps to first polygon vertex
 
-const FILL_COLORS:   string[] = ['rgba(200,200,200,0.25)'];
+const FILL_COLORS: string[] = ['rgba(200,200,200,0.25)'];
 const STROKE_COLORS: string[] = ['#999'];
 let colorIndex = 0;
 
 // ── Flower icon (vectorizer.io trace, viewBox 0 0 600 600, centre 300 300) ─
 const FLOWER_RADIUS = 270; // px from centre to petal tip in viewBox coords
-const FLOWER_OUTLINE_D = 'M298.13 569.24 c-27.60 -3.93 -46.46 -16.93 -56.72 -39.20 -3.98 -8.61 -8.79 -26.02 -8.79 -31.76 0 -0.76 -0.18 -1.41 -0.35 -1.41 -0.23 0 -2.93 2.46 -6.09 5.45 -12.19 11.72 -23.09 18.87 -35.27 23.14 -7.21 2.58 -14.06 3.63 -23.38 3.63 -12.77 0 -20.98 -1.82 -32.58 -7.32 -11.60 -5.51 -21.21 -12.48 -29.88 -21.62 -8.03 -8.50 -12.66 -16.29 -15.82 -26.72 -2.17 -7.15 -2.58 -21.15 -0.88 -29.30 0.64 -3.05 1.35 -5.98 1.52 -6.45 0.29 -0.64 -0.41 -1.17 -2.70 -1.99 -23.38 -8.20 -41.13 -30.12 -48.57 -59.77 -0.88 -3.52 -1.29 -7.44 -1.52 -15.29 -0.41 -13.71 0.59 -19.10 5.33 -28.65 5.10 -10.37 12.07 -18.28 22.44 -25.37 2.46 -1.70 4.22 -3.11 3.81 -3.11 -1.46 0 -13.30 -8.55 -17.99 -13.01 -10.49 -9.90 -15.88 -18.81 -19.39 -31.99 -2.05 -7.79 -2.58 -21.45 -1.17 -31.05 3.87 -26.19 16.35 -47.29 34.22 -57.83 4.98 -2.93 15.53 -6.56 20.51 -7.09 4.98 -0.53 5.04 -0.64 3.93 -4.69 -1.52 -5.39 -1.88 -20.86 -0.59 -27.19 2.70 -13.13 8.85 -23.32 21.33 -35.33 23.44 -22.38 54.02 -30.35 81.33 -21.15 6.50 2.17 14.36 6.27 20.68 10.78 5.63 3.98 19.57 16.29 20.10 17.70 0.41 1.11 0.64 0.12 2.17 -8.61 2.70 -15.64 9.08 -30.06 17.87 -40.31 12.36 -14.47 32.52 -22.97 57.42 -24.26 19.75 -1 40.90 4.92 52.68 14.71 10.90 9.14 17.23 19.57 21.33 35.33 l1.58 5.92 4.39 -2.93 c11.72 -7.73 23.50 -11.43 38.09 -12.01 12.66 -0.47 23.73 1.93 36.04 8.03 12.66 6.15 23.14 14.12 31 23.44 14.47 17.17 18.52 34.45 13.54 57.77 l-0.41 1.82 4.04 0.41 c15.06 1.58 27.54 7.62 37.38 18.05 9.67 10.31 16.70 24.61 20.33 41.66 1.70 8.20 1.88 26.31 0.29 33.81 -4.28 19.69 -14.41 33.40 -33.63 45.47 -2.75 1.76 -4.80 3.16 -4.45 3.16 0.29 0 3.16 1.93 6.39 4.28 12.01 8.85 20.04 20.04 23.79 33.05 1.23 4.10 1.35 5.86 1.35 16.88 0 11.43 -0.12 12.77 -1.58 18.46 -5.74 22.50 -17.99 41.13 -34.28 51.91 -4.98 3.34 -12.01 6.68 -16.76 7.91 -1.52 0.41 -2.75 1.05 -2.75 1.41 0.06 0.29 0.41 2.29 0.88 4.39 2.11 9.32 1.76 21.74 -0.94 32.05 -3.69 14.18 -16.29 29.59 -33.05 40.61 -5.80 3.75 -16.11 8.85 -21.97 10.78 -13.83 4.57 -32.75 4.39 -46.29 -0.35 -5.98 -2.11 -13.13 -5.68 -17.70 -8.73 -1.82 -1.29 -3.46 -2.29 -3.57 -2.29 -0.12 0 -0.59 1.52 -1 3.40 -1.23 5.68 -4.63 14.82 -7.38 19.80 -9.38 17.34 -23.50 26.84 -46.23 31.05 -7.15 1.29 -24.55 1.64 -32.05 0.53z';
-const FLOWER_CENTER_D = 'M295.31 333.98 c-4.51 -0.59 -10.90 -2.87 -14.77 -5.33 -3.63 -2.34 -9.14 -8.26 -11.19 -12.07 -5.21 -9.67 -5.10 -23.50 0.29 -33.75 3.87 -7.38 12.77 -14.24 21.33 -16.46 4.57 -1.17 14.12 -1.23 18.40 -0.06 6.04 1.58 10.55 4.28 15.18 9.02 6.91 7.15 10.02 14.88 10.02 25.25 0 8.73 -3.05 16.29 -9.38 23.03 -7.68 8.26 -18.05 11.84 -29.88 10.37z';
+const FLOWER_OUTLINE_D =
+  'M298.13 569.24 c-27.60 -3.93 -46.46 -16.93 -56.72 -39.20 -3.98 -8.61 -8.79 -26.02 -8.79 -31.76 0 -0.76 -0.18 -1.41 -0.35 -1.41 -0.23 0 -2.93 2.46 -6.09 5.45 -12.19 11.72 -23.09 18.87 -35.27 23.14 -7.21 2.58 -14.06 3.63 -23.38 3.63 -12.77 0 -20.98 -1.82 -32.58 -7.32 -11.60 -5.51 -21.21 -12.48 -29.88 -21.62 -8.03 -8.50 -12.66 -16.29 -15.82 -26.72 -2.17 -7.15 -2.58 -21.15 -0.88 -29.30 0.64 -3.05 1.35 -5.98 1.52 -6.45 0.29 -0.64 -0.41 -1.17 -2.70 -1.99 -23.38 -8.20 -41.13 -30.12 -48.57 -59.77 -0.88 -3.52 -1.29 -7.44 -1.52 -15.29 -0.41 -13.71 0.59 -19.10 5.33 -28.65 5.10 -10.37 12.07 -18.28 22.44 -25.37 2.46 -1.70 4.22 -3.11 3.81 -3.11 -1.46 0 -13.30 -8.55 -17.99 -13.01 -10.49 -9.90 -15.88 -18.81 -19.39 -31.99 -2.05 -7.79 -2.58 -21.45 -1.17 -31.05 3.87 -26.19 16.35 -47.29 34.22 -57.83 4.98 -2.93 15.53 -6.56 20.51 -7.09 4.98 -0.53 5.04 -0.64 3.93 -4.69 -1.52 -5.39 -1.88 -20.86 -0.59 -27.19 2.70 -13.13 8.85 -23.32 21.33 -35.33 23.44 -22.38 54.02 -30.35 81.33 -21.15 6.50 2.17 14.36 6.27 20.68 10.78 5.63 3.98 19.57 16.29 20.10 17.70 0.41 1.11 0.64 0.12 2.17 -8.61 2.70 -15.64 9.08 -30.06 17.87 -40.31 12.36 -14.47 32.52 -22.97 57.42 -24.26 19.75 -1 40.90 4.92 52.68 14.71 10.90 9.14 17.23 19.57 21.33 35.33 l1.58 5.92 4.39 -2.93 c11.72 -7.73 23.50 -11.43 38.09 -12.01 12.66 -0.47 23.73 1.93 36.04 8.03 12.66 6.15 23.14 14.12 31 23.44 14.47 17.17 18.52 34.45 13.54 57.77 l-0.41 1.82 4.04 0.41 c15.06 1.58 27.54 7.62 37.38 18.05 9.67 10.31 16.70 24.61 20.33 41.66 1.70 8.20 1.88 26.31 0.29 33.81 -4.28 19.69 -14.41 33.40 -33.63 45.47 -2.75 1.76 -4.80 3.16 -4.45 3.16 0.29 0 3.16 1.93 6.39 4.28 12.01 8.85 20.04 20.04 23.79 33.05 1.23 4.10 1.35 5.86 1.35 16.88 0 11.43 -0.12 12.77 -1.58 18.46 -5.74 22.50 -17.99 41.13 -34.28 51.91 -4.98 3.34 -12.01 6.68 -16.76 7.91 -1.52 0.41 -2.75 1.05 -2.75 1.41 0.06 0.29 0.41 2.29 0.88 4.39 2.11 9.32 1.76 21.74 -0.94 32.05 -3.69 14.18 -16.29 29.59 -33.05 40.61 -5.80 3.75 -16.11 8.85 -21.97 10.78 -13.83 4.57 -32.75 4.39 -46.29 -0.35 -5.98 -2.11 -13.13 -5.68 -17.70 -8.73 -1.82 -1.29 -3.46 -2.29 -3.57 -2.29 -0.12 0 -0.59 1.52 -1 3.40 -1.23 5.68 -4.63 14.82 -7.38 19.80 -9.38 17.34 -23.50 26.84 -46.23 31.05 -7.15 1.29 -24.55 1.64 -32.05 0.53z';
+const FLOWER_CENTER_D =
+  'M295.31 333.98 c-4.51 -0.59 -10.90 -2.87 -14.77 -5.33 -3.63 -2.34 -9.14 -8.26 -11.19 -12.07 -5.21 -9.67 -5.10 -23.50 0.29 -33.75 3.87 -7.38 12.77 -14.24 21.33 -16.46 4.57 -1.17 14.12 -1.23 18.40 -0.06 6.04 1.58 10.55 4.28 15.18 9.02 6.91 7.15 10.02 14.88 10.02 25.25 0 8.73 -3.05 16.29 -9.38 23.03 -7.68 8.26 -18.05 11.84 -29.88 10.37z';
 // ── Tree icon paths ─────────────────────────────────────────────────────────
 // Source: shape 6b from tree-32.svg (top-view tree, Inkscape CC0)
 // Path-local bbox: x 320–391, y 105–176; center (355.5, 140.3); half-extent ~35.5
 // Normalising transform in createTreeMarker: translate(-55.5, 159.7) → center at (300,300)
 const TREE_RADIUS = 35.5; // half-extent in path-local coords
-const TREE_SHADOW_D = 'm 330.97063,126.53152 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
-const TREE_BODY_D   = 'm 327.42837,125.29943 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
+const TREE_SHADOW_D =
+  'm 330.97063,126.53152 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
+const TREE_BODY_D =
+  'm 327.42837,125.29943 -1.07808,1.54011 -5.08238,-0.15401 -0.15401,4.31232 -1.07808,2.31017 0,2.92622 1.84813,3.08023 -0.30802,4.77435 c 0,0 -2.31017,2.6182 -0.15401,4.0043 2.15616,1.38611 4.77436,4.15831 4.77436,4.15831 l -2.00215,6.46848 4.92836,5.08238 12.16691,9.54871 3.38825,-0.46203 c 0,0 0.61605,-1.84814 1.3861,-2.00215 0.77006,-0.15401 1.84814,-1.07808 2.46419,0.15401 0.61604,1.23209 4.46633,3.54226 4.46633,3.54226 0,0 2.61819,1.07808 3.85029,1.07808 1.23209,0 8.1626,0 8.1626,0 0,0 3.38826,-2.15616 4.77436,-2.61819 1.3861,-0.46203 1.84814,-0.30802 2.61819,-0.77006 0.77006,-0.46203 1.84814,-1.69412 1.54012,-2.92622 -0.30802,-1.23209 -0.61605,-2.31017 0,-2.7722 0.61604,-0.46204 2.46418,-1.23209 3.69627,-1.3861 1.2321,-0.15402 4.92837,-1.84814 4.92837,-1.84814 l 4.46633,-5.23639 3.23424,-4.31232 c 0,0 0.92407,-3.69628 0.77006,-4.62035 -0.15401,-0.92407 -3.54226,-4.15831 -3.54226,-4.15831 l -0.30803,-4.62034 c 0,0 3.54227,-3.08023 3.54227,-3.69628 0,-0.61604 -0.77006,-4.00429 -0.77006,-4.00429 l -1.07808,-4.15831 0.15401,-4.92837 -4.15831,-5.85243 -6.00644,-0.77006 -3.54227,-2.15616 -0.46203,-3.54227 -4.46634,-4.62034 -4.1583,-1.69413 -12.47493,0.30803 -4.0043,3.54226 -2.92622,-0.15401 -2.92622,-2.46418 -4.77435,0.92406 -7.23854,2.77221 -4.31232,8.93267 z';
 
 const FLOWER_PETAL_DS: string[] = [
   'M304.75 543.69 c-14.88 -1.76 -27.95 -8.91 -35.57 -19.63 -12.42 -17.40 -16 -45.64 -10.49 -82.62 3.57 -24.08 11.13 -53.26 19.16 -73.95 2.11 -5.45 2.52 -6.04 3.63 -5.80 0.64 0.18 3.34 0.82 5.92 1.46 2.58 0.64 6.50 1.41 8.73 1.70 l4.04 0.47 3.34 10.25 c13.65 41.78 31.52 77.93 52.27 105.94 l5.80 7.85 -0.64 6.56 c-1.70 17.05 -5.51 26.78 -13.77 35.27 -9.90 10.08 -24.96 14.47 -42.42 12.48z',
@@ -42,30 +55,30 @@ const FLOWER_PETAL_DS: string[] = [
 ];
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
-const svgEl          = document.getElementById('canvas') as SVGSVGElement;
-const bgLayer        = document.getElementById('bg-layer') as SVGGElement;
-const shapesLayer    = document.getElementById('shapes-layer') as SVGGElement;
-const markersLayer   = document.getElementById('markers-layer') as SVGGElement;
-const labelLayer     = document.getElementById('label-layer') as SVGGElement;
-const overlayLayer   = document.getElementById('overlay-layer') as SVGGElement;
-const infoContent    = document.getElementById('info-content') as HTMLDivElement;
+const svgEl = document.getElementById('canvas') as SVGSVGElement;
+const bgLayer = document.getElementById('bg-layer') as SVGGElement;
+const shapesLayer = document.getElementById('shapes-layer') as SVGGElement;
+const markersLayer = document.getElementById('markers-layer') as SVGGElement;
+const labelLayer = document.getElementById('label-layer') as SVGGElement;
+const overlayLayer = document.getElementById('overlay-layer') as SVGGElement;
+const infoContent = document.getElementById('info-content') as HTMLDivElement;
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
-const deleteBtn      = document.getElementById('delete-btn') as HTMLButtonElement;
-const statusMsg      = document.getElementById('status-msg') as HTMLSpanElement;
-const importBgBtn    = document.getElementById('import-bg-btn') as HTMLButtonElement;
-const bgFileInput    = document.getElementById('bg-file-input') as HTMLInputElement;
-const calibOverlay   = document.getElementById('calib-overlay') as HTMLDivElement;
-const calibInput     = document.getElementById('calib-input') as HTMLInputElement;
-const calibOkBtn     = document.getElementById('calib-ok') as HTMLButtonElement;
+const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
+const statusMsg = document.getElementById('status-msg') as HTMLSpanElement;
+const importBgBtn = document.getElementById('import-bg-btn') as HTMLButtonElement;
+const bgFileInput = document.getElementById('bg-file-input') as HTMLInputElement;
+const calibOverlay = document.getElementById('calib-overlay') as HTMLDivElement;
+const calibInput = document.getElementById('calib-input') as HTMLInputElement;
+const calibOkBtn = document.getElementById('calib-ok') as HTMLButtonElement;
 const calibCancelBtn = document.getElementById('calib-cancel') as HTMLButtonElement;
-const scaleInfo      = document.getElementById('scale-info') as HTMLSpanElement;
+const scaleInfo = document.getElementById('scale-info') as HTMLSpanElement;
 
 // ── State ──────────────────────────────────────────────────────────────────
 type Tool = 'select' | 'rect' | 'circle' | 'ellipse' | 'polygon' | 'calibrate';
 let currentTool: Tool = 'select';
-let drawing   = false;
-let startX    = 0;
-let startY    = 0;
+let drawing = false;
+let startX = 0;
+let startY = 0;
 let activeEl: SVGElement | null = null;
 let selectedData: ShapeData | null = null;
 let shapes: ShapeData[] = [];
@@ -74,52 +87,64 @@ let shapes: ShapeData[] = [];
 let fillMode = false;
 
 // Polygon drawing state
-let polyPts:        Array<{ x: number; y: number }> = [];
-let polyVertexDots: SVGCircleElement[]               = [];
-let polySegments:   SVGLineElement[]                 = [];
-let polyPreviewLine: SVGLineElement | null           = null;
+let polyPts: Array<{ x: number; y: number }> = [];
+let polyVertexDots: SVGCircleElement[] = [];
+let polySegments: SVGLineElement[] = [];
+let polyPreviewLine: SVGLineElement | null = null;
 
 // Phase 3 — background image & scale calibration
 let sessionScale = SCALE;
 let bgImageEl: SVGImageElement | null = null;
-let bgX = 0, bgY = 0;
-let calibPts: Array<{x: number, y: number}> = [];
+let bgX = 0,
+  bgY = 0;
+let calibPts: Array<{ x: number; y: number }> = [];
 let calibMarkers: SVGCircleElement[] = [];
 let calibLineEl: SVGLineElement | null = null;
 let movingBg = false;
-let moveBgStartX = 0, moveBgStartY = 0;
-let moveBgOrigX  = 0, moveBgOrigY  = 0;
+let moveBgStartX = 0,
+  moveBgStartY = 0;
+let moveBgOrigX = 0,
+  moveBgOrigY = 0;
 
 // Marker selection
 let selectedMarker: PlantMarker | null = null;
 let selectedMarkerShape: ShapeData | null = null;
 
 // Shape / marker dragging
-let draggingShape:  ShapeData   | null = null;
+let draggingShape: ShapeData | null = null;
 let draggingMarker: PlantMarker | null = null;
-let dragMouseStartX = 0, dragMouseStartY = 0;
+let dragMouseStartX = 0,
+  dragMouseStartY = 0;
 // Snapshot of shape origin at drag start (type-specific)
-let dragShapeOrigRectX = 0, dragShapeOrigRectY = 0;
-let dragShapeOrigCx    = 0, dragShapeOrigCy    = 0;
+let dragShapeOrigRectX = 0,
+  dragShapeOrigRectY = 0;
+let dragShapeOrigCx = 0,
+  dragShapeOrigCy = 0;
 let dragShapeOrigPoints: Array<{ x: number; y: number }> = [];
 let dragShapeMarkersOrig: Array<{ x: number; y: number }> = [];
 // Snapshot of marker origin at drag start
-let dragMarkerOrigX = 0, dragMarkerOrigY = 0;
+let dragMarkerOrigX = 0,
+  dragMarkerOrigY = 0;
 
 // ── Zoom / pan state ────────────────────────────────────────────────────────
-let vbX = 0, vbY = 0, vbW = CANVAS_W, vbH = CANVAS_H;
-let panning     = false;
-let panStartX   = 0, panStartY   = 0;   // screen px at pan start
-let panVbStartX = 0, panVbStartY = 0;   // viewBox origin at pan start
-let spaceDown   = false;
+let vbX = 0,
+  vbY = 0,
+  vbW = CANVAS_W,
+  vbH = CANVAS_H;
+let panning = false;
+let panStartX = 0,
+  panStartY = 0; // screen px at pan start
+let panVbStartX = 0,
+  panVbStartY = 0; // viewBox origin at pan start
+let spaceDown = false;
 
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
   const g = document.getElementById('grid-layer') as SVGGElement;
   g.innerHTML = '';
 
-  const major = scale;       // 1 m
-  const minor = scale / 2;   // 0.5 m
+  const major = scale; // 1 m
+  const minor = scale / 2; // 0.5 m
   const showMinor = scale >= 50;
 
   // Minor lines first (drawn underneath major lines)
@@ -127,17 +152,23 @@ function drawGrid(scale = SCALE): void {
     for (let i = 1; i * minor <= CANVAS_W; i++) {
       const x = i * minor;
       const ln = document.createElementNS(NS, 'line');
-      ln.setAttribute('x1', String(x)); ln.setAttribute('y1', '0');
-      ln.setAttribute('x2', String(x)); ln.setAttribute('y2', String(CANVAS_H));
-      ln.setAttribute('stroke', '#e8f0e4'); ln.setAttribute('stroke-width', '0.5');
+      ln.setAttribute('x1', String(x));
+      ln.setAttribute('y1', '0');
+      ln.setAttribute('x2', String(x));
+      ln.setAttribute('y2', String(CANVAS_H));
+      ln.setAttribute('stroke', '#e8f0e4');
+      ln.setAttribute('stroke-width', '0.5');
       g.appendChild(ln);
     }
     for (let i = 1; i * minor <= CANVAS_H; i++) {
       const y = i * minor;
       const ln = document.createElementNS(NS, 'line');
-      ln.setAttribute('x1', '0'); ln.setAttribute('y1', String(y));
-      ln.setAttribute('x2', String(CANVAS_W)); ln.setAttribute('y2', String(y));
-      ln.setAttribute('stroke', '#e8f0e4'); ln.setAttribute('stroke-width', '0.5');
+      ln.setAttribute('x1', '0');
+      ln.setAttribute('y1', String(y));
+      ln.setAttribute('x2', String(CANVAS_W));
+      ln.setAttribute('y2', String(y));
+      ln.setAttribute('stroke', '#e8f0e4');
+      ln.setAttribute('stroke-width', '0.5');
       g.appendChild(ln);
     }
   }
@@ -146,33 +177,45 @@ function drawGrid(scale = SCALE): void {
   for (let i = 0; i * major <= CANVAS_W; i++) {
     const x = i * major;
     const ln = document.createElementNS(NS, 'line');
-    ln.setAttribute('x1', String(x)); ln.setAttribute('y1', '0');
-    ln.setAttribute('x2', String(x)); ln.setAttribute('y2', String(CANVAS_H));
-    ln.setAttribute('stroke', '#c8d8c0'); ln.setAttribute('stroke-width', '1');
+    ln.setAttribute('x1', String(x));
+    ln.setAttribute('y1', '0');
+    ln.setAttribute('x2', String(x));
+    ln.setAttribute('y2', String(CANVAS_H));
+    ln.setAttribute('stroke', '#c8d8c0');
+    ln.setAttribute('stroke-width', '1');
     g.appendChild(ln);
   }
   for (let i = 0; i * major <= CANVAS_H; i++) {
     const y = i * major;
     const ln = document.createElementNS(NS, 'line');
-    ln.setAttribute('x1', '0'); ln.setAttribute('y1', String(y));
-    ln.setAttribute('x2', String(CANVAS_W)); ln.setAttribute('y2', String(y));
-    ln.setAttribute('stroke', '#c8d8c0'); ln.setAttribute('stroke-width', '1');
+    ln.setAttribute('x1', '0');
+    ln.setAttribute('y1', String(y));
+    ln.setAttribute('x2', String(CANVAS_W));
+    ln.setAttribute('y2', String(y));
+    ln.setAttribute('stroke', '#c8d8c0');
+    ln.setAttribute('stroke-width', '1');
     g.appendChild(ln);
   }
 
   // Metre labels
   for (let m = 1; m * scale <= CANVAS_W; m++) {
     const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', String(Math.round(m * scale))); txt.setAttribute('y', '11');
+    txt.setAttribute('x', String(Math.round(m * scale)));
+    txt.setAttribute('y', '11');
     txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
-    txt.textContent = m + 'm'; g.appendChild(txt);
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('fill', '#aac0a0');
+    txt.textContent = m + 'm';
+    g.appendChild(txt);
   }
   for (let m = 1; m * scale <= CANVAS_H; m++) {
     const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', '4'); txt.setAttribute('y', String(Math.round(m * scale) + 4));
-    txt.setAttribute('font-size', '9'); txt.setAttribute('fill', '#aac0a0');
-    txt.textContent = m + 'm'; g.appendChild(txt);
+    txt.setAttribute('x', '4');
+    txt.setAttribute('y', String(Math.round(m * scale) + 4));
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('fill', '#aac0a0');
+    txt.textContent = m + 'm';
+    g.appendChild(txt);
   }
 }
 
@@ -186,15 +229,18 @@ let dimLabel: DimLabel | null = null;
 
 function ensureDimLabel(): void {
   if (dimLabel) return;
-  const g  = document.createElementNS(NS, 'g') as SVGGElement;
+  const g = document.createElementNS(NS, 'g') as SVGGElement;
   const bg = document.createElementNS(NS, 'rect') as SVGRectElement;
-  bg.setAttribute('fill', 'rgba(0,0,0,0.65)'); bg.setAttribute('rx', '3');
+  bg.setAttribute('fill', 'rgba(0,0,0,0.65)');
+  bg.setAttribute('rx', '3');
   const tx = document.createElementNS(NS, 'text') as SVGTextElement;
-  tx.setAttribute('fill', '#fff'); tx.setAttribute('font-size', '11');
+  tx.setAttribute('fill', '#fff');
+  tx.setAttribute('font-size', '11');
   tx.setAttribute('font-family', 'system-ui,sans-serif');
   tx.setAttribute('text-anchor', 'middle');
   tx.setAttribute('dominant-baseline', 'middle');
-  g.appendChild(bg); g.appendChild(tx);
+  g.appendChild(bg);
+  g.appendChild(tx);
   overlayLayer.appendChild(g);
   dimLabel = { g, bg, tx };
 }
@@ -202,22 +248,28 @@ function ensureDimLabel(): void {
 function updateDimLabel(x: number, y: number, text: string): void {
   ensureDimLabel();
   const d = dimLabel!;
-  const pad = 5, h = 18;
+  const pad = 5,
+    h = 18;
   const w = text.length * 6.2 + pad * 2;
   d.tx.textContent = text;
-  d.bg.setAttribute('width', String(w));  d.bg.setAttribute('height', String(h));
-  d.bg.setAttribute('x', String(x - w / 2)); d.bg.setAttribute('y', String(y - h / 2));
-  d.tx.setAttribute('x', String(x)); d.tx.setAttribute('y', String(y));
+  d.bg.setAttribute('width', String(w));
+  d.bg.setAttribute('height', String(h));
+  d.bg.setAttribute('x', String(x - w / 2));
+  d.bg.setAttribute('y', String(y - h / 2));
+  d.tx.setAttribute('x', String(x));
+  d.tx.setAttribute('y', String(y));
   d.g.style.display = '';
 }
 
-function hideDimLabel(): void { if (dimLabel) dimLabel.g.style.display = 'none'; }
+function hideDimLabel(): void {
+  if (dimLabel) dimLabel.g.style.display = 'none';
+}
 
 // ── Permanent canvas label on each shape ───────────────────────────────────
 function makeLabelEl(): LabelEl {
-  const g   = document.createElementNS(NS, 'g') as SVGGElement;
+  const g = document.createElementNS(NS, 'g') as SVGGElement;
   g.style.pointerEvents = 'none';
-  const bg  = document.createElementNS(NS, 'rect') as SVGRectElement;
+  const bg = document.createElementNS(NS, 'rect') as SVGRectElement;
   bg.setAttribute('fill', 'rgba(255,255,255,0.82)');
   bg.setAttribute('rx', '3');
   const tx1 = document.createElementNS(NS, 'text') as SVGTextElement;
@@ -229,7 +281,9 @@ function makeLabelEl(): LabelEl {
     tx.setAttribute('text-anchor', 'middle');
     tx.setAttribute('dominant-baseline', 'middle');
   }
-  g.appendChild(bg); g.appendChild(tx1); g.appendChild(tx2);
+  g.appendChild(bg);
+  g.appendChild(tx1);
+  g.appendChild(tx2);
   g.style.display = 'none';
   labelLayer.appendChild(g);
   return { g, bg, tx1, tx2 };
@@ -241,11 +295,13 @@ function updateLabelEl(d: ShapeData): void {
   const { x: cx, y: cy } = shapeCentroid(d);
 
   const count = d.plantMarkers.length;
-  const line1 = count > 0
-    ? count + (count === 1 ? ' plant' : ' plants')
-    : fmt(calcArea(d, sessionScale)) + ' m²';
+  const line1 =
+    count > 0
+      ? count + (count === 1 ? ' plant' : ' plants')
+      : fmt(calcArea(d, sessionScale)) + ' m²';
 
-  const pad = 4, lineH = 13;
+  const pad = 4,
+    lineH = 13;
   const totalH = lineH + pad * 2;
   const totalW = line1.length * 6 + pad * 2;
 
@@ -256,14 +312,17 @@ function updateLabelEl(d: ShapeData): void {
   tx2.textContent = '';
   tx2.style.display = 'none';
 
-  bg.setAttribute('width',  String(totalW));
+  bg.setAttribute('width', String(totalW));
   bg.setAttribute('height', String(totalH));
   bg.setAttribute('x', String(cx - totalW / 2));
   bg.setAttribute('y', String(cy - totalH / 2));
 }
 
 function removeLabelEl(d: ShapeData): void {
-  if (d.labelEl) { d.labelEl.g.remove(); d.labelEl = null; }
+  if (d.labelEl) {
+    d.labelEl.g.remove();
+    d.labelEl = null;
+  }
 }
 
 // ── Flower path helper ──────────────────────────────────────────────────────
@@ -296,7 +355,7 @@ function createFlowerMarker(x: number, y: number, dotR: number, color: string): 
 }
 
 /** Builds a scaled tree icon <g> centred at (x, y) with the given dotR and plant color. */
-function createTreeMarker(x: number, y: number, dotR: number, color: string): SVGGElement {
+function createTreeMarker(x: number, y: number, dotR: number, _color: string): SVGGElement {
   const s = dotR / TREE_RADIUS;
   const g = document.createElementNS(NS, 'g') as SVGGElement;
   // translate(-355.5, -140.3) moves path-local center (355.5, 140.3) to origin before scaling
@@ -338,10 +397,11 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   ring.style.pointerEvents = 'none';
   ring.classList.add('spacing-ring');
 
-  const dotR  = (plant.spacing / 2) * sessionScale * 0.45;
-  const iconG = plant.icon === 'tree'
-    ? createTreeMarker(x, y, dotR, plant.color)
-    : createFlowerMarker(x, y, dotR, plant.color);
+  const dotR = (plant.spacing / 2) * sessionScale * 0.45;
+  const iconG =
+    plant.icon === 'tree'
+      ? createTreeMarker(x, y, dotR, plant.color)
+      : createFlowerMarker(x, y, dotR, plant.color);
 
   const selCircle = document.createElementNS(NS, 'circle') as SVGCircleElement;
   selCircle.setAttribute('cx', String(x));
@@ -423,12 +483,13 @@ function updateInfoPanel(d: ShapeData | null): void {
   }
 
   const count = d.plantMarkers.length;
-  const countHTML = count > 0
-    ? `<div class="plant-count-row">
+  const countHTML =
+    count > 0
+      ? `<div class="plant-count-row">
          <span class="plant-count-label">Plants placed</span>
          <span class="plant-count-value">${count}</span>
        </div>`
-    : `<div class="info-hint" style="margin-top:6px;">Drag a plant from the left panel onto this bed.</div>`;
+      : `<div class="info-hint" style="margin-top:6px;">Drag a plant from the left panel onto this bed.</div>`;
 
   infoContent.innerHTML = `
     ${dimRows}
@@ -441,7 +502,7 @@ function updateInfoPanel(d: ShapeData | null): void {
 // ── Plant summary ──────────────────────────────────────────────────────────
 function renderUsedPlants(): void {
   const section = document.getElementById('used-plants-section') as HTMLDivElement;
-  const el      = document.getElementById('used-plants') as HTMLDivElement;
+  const el = document.getElementById('used-plants') as HTMLDivElement;
   // Collect unique plants by name, preserving first-seen order
   const seen = new Map<string, Plant>();
   for (const d of shapes) {
@@ -457,7 +518,7 @@ function renderUsedPlants(): void {
   }
   section.style.display = 'flex';
   el.innerHTML = '';
-  seen.forEach(plant => el.appendChild(makeChip(plant)));
+  seen.forEach((plant) => el.appendChild(makeChip(plant)));
 }
 
 function updateSummary(): void {
@@ -504,8 +565,8 @@ function updateSummary(): void {
 
 // ── Selection ──────────────────────────────────────────────────────────────
 const SEL_STROKE = '#1565c0';
-const SEL_SW     = '3';
-const DEF_SW     = '1.5';
+const SEL_SW = '3';
+const DEF_SW = '1.5';
 
 function deselectMarker(): void {
   if (!selectedMarker) return;
@@ -551,12 +612,14 @@ function selectShape(d: ShapeData | null): void {
 
 // ── Drag helpers ────────────────────────────────────────────────────────────
 function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
-  m.x = x; m.y = y;
-  m.el.querySelectorAll('circle').forEach(c => {
-    c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y));
+  m.x = x;
+  m.y = y;
+  m.el.querySelectorAll('circle').forEach((c) => {
+    c.setAttribute('cx', String(x));
+    c.setAttribute('cy', String(y));
   });
   const ringR = (m.plant.spacing / 2) * sessionScale;
-  const dotR  = ringR * 0.45;
+  const dotR = ringR * 0.45;
   const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
   if (flowerG) {
     const s = dotR / FLOWER_RADIUS;
@@ -573,16 +636,22 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
 
 function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
   if (d.type === 'rect') {
-    const x = dragShapeOrigRectX + dx, y = dragShapeOrigRectY + dy;
-    d.el.setAttribute('x', String(x)); d.el.setAttribute('y', String(y));
-    d.x = x; d.y = y;
+    const x = dragShapeOrigRectX + dx,
+      y = dragShapeOrigRectY + dy;
+    d.el.setAttribute('x', String(x));
+    d.el.setAttribute('y', String(y));
+    d.x = x;
+    d.y = y;
   } else if (d.type === 'circle' || d.type === 'ellipse') {
-    const cx = dragShapeOrigCx + dx, cy = dragShapeOrigCy + dy;
-    d.el.setAttribute('cx', String(cx)); d.el.setAttribute('cy', String(cy));
-    d.cx = cx; d.cy = cy;
+    const cx = dragShapeOrigCx + dx,
+      cy = dragShapeOrigCy + dy;
+    d.el.setAttribute('cx', String(cx));
+    d.el.setAttribute('cy', String(cy));
+    d.cx = cx;
+    d.cy = cy;
   } else if (d.type === 'polygon') {
-    const pts = dragShapeOrigPoints.map(p => ({ x: p.x + dx, y: p.y + dy }));
-    d.el.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    const pts = dragShapeOrigPoints.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+    d.el.setAttribute('points', pts.map((p) => `${p.x},${p.y}`).join(' '));
     d.points = pts;
   }
   d.plantMarkers.forEach((m, i) => {
@@ -593,7 +662,7 @@ function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
 }
 
 function findShapeByEl(el: Element): ShapeData | null {
-  return shapes.find(s => s.el === el) ?? null;
+  return shapes.find((s) => s.el === el) ?? null;
 }
 
 // ── Deletion ───────────────────────────────────────────────────────────────
@@ -613,7 +682,7 @@ function deleteSelected(): void {
   for (const m of selectedData.plantMarkers) m.el.remove();
   selectedData.el.remove();
   removeLabelEl(selectedData);
-  shapes = shapes.filter(s => s !== selectedData);
+  shapes = shapes.filter((s) => s !== selectedData);
   selectedData = null;
   updateInfoPanel(null);
   updateSummary();
@@ -650,14 +719,18 @@ function clearPolygon(): void {
   polyVertexDots = [];
   for (const s of polySegments) overlayLayer.removeChild(s);
   polySegments = [];
-  if (polyPreviewLine) { overlayLayer.removeChild(polyPreviewLine); polyPreviewLine = null; }
+  if (polyPreviewLine) {
+    overlayLayer.removeChild(polyPreviewLine);
+    polyPreviewLine = null;
+  }
   polyPts = [];
   hideDimLabel();
 }
 
 function addVertexDot(pt: { x: number; y: number }, isFirst: boolean): void {
   const c = document.createElementNS(NS, 'circle') as SVGCircleElement;
-  c.setAttribute('cx', String(pt.x)); c.setAttribute('cy', String(pt.y));
+  c.setAttribute('cx', String(pt.x));
+  c.setAttribute('cy', String(pt.y));
   c.setAttribute('r', '5');
   c.setAttribute('fill', isFirst ? '#fff' : '#1565c0');
   c.setAttribute('stroke', '#1565c0');
@@ -669,8 +742,10 @@ function addVertexDot(pt: { x: number; y: number }, isFirst: boolean): void {
 
 function drawPolySegment(p1: { x: number; y: number }, p2: { x: number; y: number }): void {
   const ln = document.createElementNS(NS, 'line') as SVGLineElement;
-  ln.setAttribute('x1', String(p1.x)); ln.setAttribute('y1', String(p1.y));
-  ln.setAttribute('x2', String(p2.x)); ln.setAttribute('y2', String(p2.y));
+  ln.setAttribute('x1', String(p1.x));
+  ln.setAttribute('y1', String(p1.y));
+  ln.setAttribute('x2', String(p2.x));
+  ln.setAttribute('y2', String(p2.y));
   ln.setAttribute('stroke', '#1565c0');
   ln.setAttribute('stroke-width', '1.5');
   ln.setAttribute('stroke-dasharray', '5,3');
@@ -690,8 +765,10 @@ function updatePolyPreview(pt: { x: number; y: number }): void {
     overlayLayer.appendChild(polyPreviewLine);
   }
   const last = polyPts[polyPts.length - 1];
-  polyPreviewLine.setAttribute('x1', String(last.x)); polyPreviewLine.setAttribute('y1', String(last.y));
-  polyPreviewLine.setAttribute('x2', String(pt.x));   polyPreviewLine.setAttribute('y2', String(pt.y));
+  polyPreviewLine.setAttribute('x1', String(last.x));
+  polyPreviewLine.setAttribute('y1', String(last.y));
+  polyPreviewLine.setAttribute('x2', String(pt.x));
+  polyPreviewLine.setAttribute('y2', String(pt.y));
 }
 
 function finalizePolygon(): void {
@@ -702,13 +779,13 @@ function finalizePolygon(): void {
   }
   const { fill, stroke } = nextColor();
   const el = document.createElementNS(NS, 'polygon') as SVGPolygonElement;
-  el.setAttribute('points', polyPts.map(p => `${p.x},${p.y}`).join(' '));
+  el.setAttribute('points', polyPts.map((p) => `${p.x},${p.y}`).join(' '));
   el.setAttribute('fill', fill);
   el.setAttribute('stroke', stroke);
   el.setAttribute('stroke-width', DEF_SW);
   (el as SVGElement & { dataset: DOMStringMap }).dataset['shape'] = '1';
   el.style.cursor = 'pointer';
-  (el as SVGElement & Record<string, string>)['_fill']   = fill;
+  (el as SVGElement & Record<string, string>)['_fill'] = fill;
   (el as SVGElement & Record<string, string>)['_stroke'] = stroke;
   shapesLayer.appendChild(el);
 
@@ -735,7 +812,10 @@ function clearCalibration(): void {
   calibPts = [];
   for (const c of calibMarkers) overlayLayer.removeChild(c);
   calibMarkers = [];
-  if (calibLineEl) { overlayLayer.removeChild(calibLineEl); calibLineEl = null; }
+  if (calibLineEl) {
+    overlayLayer.removeChild(calibLineEl);
+    calibLineEl = null;
+  }
   calibOverlay.style.display = 'none';
 }
 
@@ -748,21 +828,27 @@ function applyCalibration(): void {
     for (const s of shapes) updateLabelEl(s);
     for (const s of shapes) {
       for (const m of s.plantMarkers) {
-        const ringR   = (m.plant.spacing / 2) * sessionScale;
-        const dotR    = ringR * 0.45;
-        const ring    = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
+        const ringR = (m.plant.spacing / 2) * sessionScale;
+        const dotR = ringR * 0.45;
+        const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
         if (ring) ring.setAttribute('r', String(ringR));
-        const cx      = parseFloat(ring?.getAttribute('cx') ?? '0');
-        const cy      = parseFloat(ring?.getAttribute('cy') ?? '0');
+        const cx = parseFloat(ring?.getAttribute('cx') ?? '0');
+        const cy = parseFloat(ring?.getAttribute('cy') ?? '0');
         const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
         if (flowerG) {
           const s = dotR / FLOWER_RADIUS;
-          flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
+          flowerG.setAttribute(
+            'transform',
+            `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`,
+          );
         }
         const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
         if (treeG) {
           const s = dotR / TREE_RADIUS;
-          treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
+          treeG.setAttribute(
+            'transform',
+            `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`,
+          );
         }
         const selCircle = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
         if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
@@ -776,8 +862,13 @@ function applyCalibration(): void {
 }
 
 calibOkBtn.addEventListener('click', applyCalibration);
-calibInput.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') applyCalibration(); });
-calibCancelBtn.addEventListener('click', () => { clearCalibration(); setTool('select'); });
+calibInput.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.key === 'Enter') applyCalibration();
+});
+calibCancelBtn.addEventListener('click', () => {
+  clearCalibration();
+  setTool('select');
+});
 
 // ── Background image import ────────────────────────────────────────────────
 importBgBtn.addEventListener('click', () => bgFileInput.click());
@@ -789,10 +880,11 @@ bgFileInput.addEventListener('change', () => {
     if (bgImageEl) bgLayer.removeChild(bgImageEl);
     bgImageEl = document.createElementNS(NS, 'image') as SVGImageElement;
     bgImageEl.setAttribute('href', ev.target!.result as string);
-    bgX = 0; bgY = 0;
+    bgX = 0;
+    bgY = 0;
     bgImageEl.setAttribute('x', '0');
     bgImageEl.setAttribute('y', '0');
-    bgImageEl.setAttribute('width',  String(CANVAS_W));
+    bgImageEl.setAttribute('width', String(CANVAS_W));
     bgImageEl.setAttribute('height', String(CANVAS_H));
     bgImageEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     bgLayer.appendChild(bgImageEl);
@@ -805,16 +897,16 @@ bgFileInput.addEventListener('change', () => {
 // ── Tool switching ─────────────────────────────────────────────────────────
 function setTool(name: Tool): void {
   if (name !== 'calibrate') clearCalibration();
-  if (name !== 'polygon')   clearPolygon();
+  if (name !== 'polygon') clearPolygon();
   currentTool = name;
-  document.querySelectorAll('.tool-btn').forEach(b => {
+  document.querySelectorAll('.tool-btn').forEach((b) => {
     (b as HTMLElement).classList.toggle('active', (b as HTMLElement).dataset['tool'] === name);
   });
   svgEl.className.baseVal = name === 'select' ? 'tool-select' : 'tool-draw';
   statusMsg.textContent = '';
 }
 
-document.querySelectorAll('.tool-btn').forEach(b => {
+document.querySelectorAll('.tool-btn').forEach((b) => {
   if (!(b as HTMLElement).dataset['tool']) return;
   b.addEventListener('click', () => setTool((b as HTMLElement).dataset['tool'] as Tool));
 });
@@ -822,18 +914,32 @@ document.querySelectorAll('.tool-btn').forEach(b => {
 // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if ((e.target as HTMLElement).tagName === 'INPUT') return;
-  if (e.key === ' ') { spaceDown = true; svgEl.style.cursor = 'grab'; e.preventDefault(); return; }
-  if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelected(); return; }
+  if (e.key === ' ') {
+    spaceDown = true;
+    svgEl.style.cursor = 'grab';
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    deleteSelected();
+    return;
+  }
   if (e.key === 's' || e.key === 'S') setTool('select');
   if (e.key === 'r' || e.key === 'R') setTool('rect');
   if (e.key === 'c' || e.key === 'C') setTool('circle');
   if (e.key === 'e' || e.key === 'E') setTool('ellipse');
   if (e.key === 'p' || e.key === 'P') setTool('polygon');
-  if (e.key === 'Escape' && currentTool === 'polygon') { clearPolygon(); setTool('select'); }
+  if (e.key === 'Escape' && currentTool === 'polygon') {
+    clearPolygon();
+    setTool('select');
+  }
 });
 
 document.addEventListener('keyup', (e: KeyboardEvent) => {
-  if (e.key === ' ') { spaceDown = false; if (!panning) svgEl.style.cursor = ''; }
+  if (e.key === ' ') {
+    spaceDown = false;
+    if (!panning) svgEl.style.cursor = '';
+  }
 });
 
 // ── Plant palette (left panel) ─────────────────────────────────────────────
@@ -841,16 +947,23 @@ document.addEventListener('keyup', (e: KeyboardEvent) => {
 // Normalize any hex color to 6-digit form for <input type="color">
 function toColorInputHex(color: string): string {
   const c = color.replace('#', '');
-  if (c.length === 3) return '#' + c.split('').map(x => x + x).join('');
+  if (c.length === 3)
+    return (
+      '#' +
+      c
+        .split('')
+        .map((x) => x + x)
+        .join('')
+    );
   return '#' + c.slice(0, 6);
 }
 
 // Edit popover state
-const editPopover    = document.getElementById('plant-edit-popover') as HTMLDivElement;
-const editSpacingEl  = document.getElementById('edit-spacing') as HTMLInputElement;
-const editColorEl    = document.getElementById('edit-color') as HTMLInputElement;
-const editSaveBtn    = document.getElementById('edit-save-btn') as HTMLButtonElement;
-const editCancelBtn  = document.getElementById('edit-cancel-btn') as HTMLButtonElement;
+const editPopover = document.getElementById('plant-edit-popover') as HTMLDivElement;
+const editSpacingEl = document.getElementById('edit-spacing') as HTMLInputElement;
+const editColorEl = document.getElementById('edit-color') as HTMLInputElement;
+const editSaveBtn = document.getElementById('edit-save-btn') as HTMLButtonElement;
+const editCancelBtn = document.getElementById('edit-cancel-btn') as HTMLButtonElement;
 let editTarget: { chip: HTMLDivElement; plant: Plant } | null = null;
 
 function closeEditPopover(): void {
@@ -861,7 +974,7 @@ function closeEditPopover(): void {
 function openEditPopover(plant: Plant, chip: HTMLDivElement): void {
   const override = plant.slug ? getOverride(plant.slug) : null;
   editSpacingEl.value = String(override?.spacing ?? plant.spacing);
-  editColorEl.value   = toColorInputHex(override?.color ?? plant.color);
+  editColorEl.value = toColorInputHex(override?.color ?? plant.color);
   editTarget = { chip, plant };
 
   const rect = chip.getBoundingClientRect();
@@ -869,28 +982,30 @@ function openEditPopover(plant: Plant, chip: HTMLDivElement): void {
   const popW = editPopover.offsetWidth;
   const left = Math.min(rect.right + 6, window.innerWidth - popW - 8);
   editPopover.style.left = left + 'px';
-  editPopover.style.top  = rect.top + 'px';
+  editPopover.style.top = rect.top + 'px';
 }
 
 // Update all placed markers for a slug to reflect new spacing/color.
 function applyOverrideToMarkers(slug: string, spacing: number, color: string): void {
-  const isDark = (c: string) => c !== '#e0e0e0' && c !== '#ffca28';
   for (const d of shapes) {
     for (const m of d.plantMarkers) {
       if (m.plant.slug !== slug) continue;
       m.plant.spacing = spacing;
-      m.plant.color   = color;
-      const ringR   = (spacing / 2) * sessionScale;
-      const dotR    = ringR * 0.45;
-      const ring    = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
+      m.plant.color = color;
+      const ringR = (spacing / 2) * sessionScale;
+      const dotR = ringR * 0.45;
+      const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
       if (!ring) continue;
-      ring.setAttribute('r',      String(ringR));
-      const cx      = parseFloat(ring.getAttribute('cx') ?? '0');
-      const cy      = parseFloat(ring.getAttribute('cy') ?? '0');
+      ring.setAttribute('r', String(ringR));
+      const cx = parseFloat(ring.getAttribute('cx') ?? '0');
+      const cy = parseFloat(ring.getAttribute('cy') ?? '0');
       const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
       if (flowerG) {
         const s = dotR / FLOWER_RADIUS;
-        flowerG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`);
+        flowerG.setAttribute(
+          'transform',
+          `translate(${cx},${cy}) scale(${s}) translate(-300,-300)`,
+        );
         for (const p of flowerG.querySelectorAll('.petal-fill')) {
           (p as SVGElement).setAttribute('fill', color);
         }
@@ -898,7 +1013,10 @@ function applyOverrideToMarkers(slug: string, spacing: number, color: string): v
       const treeG = m.el.querySelector('.tree-icon') as SVGGElement | null;
       if (treeG) {
         const s = dotR / TREE_RADIUS;
-        treeG.setAttribute('transform', `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`);
+        treeG.setAttribute(
+          'transform',
+          `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`,
+        );
       }
     }
   }
@@ -911,12 +1029,17 @@ editSaveBtn.addEventListener('click', () => {
   if (!plant.slug) return;
 
   const spacing = parseFloat(editSpacingEl.value);
-  const color   = editColorEl.value;
-  const result  = setOverride(plant.slug, { spacing, color });
-  if (!result.ok) { alert(result.error); return; }
+  const color = editColorEl.value;
+  const result = setOverride(plant.slug, { spacing, color });
+  if (!result.ok) {
+    alert(result.error);
+    return;
+  }
 
   // Update chip icon color and stored data
-  chip.querySelectorAll('.chip-petal').forEach(p => (p as SVGElement).setAttribute('fill', color));
+  chip
+    .querySelectorAll('.chip-petal')
+    .forEach((p) => (p as SVGElement).setAttribute('fill', color));
   chip.dataset.plantJson = JSON.stringify({ ...plant, spacing, color });
 
   // Update any markers already on the canvas
@@ -925,18 +1048,24 @@ editSaveBtn.addEventListener('click', () => {
 });
 
 editCancelBtn.addEventListener('click', closeEditPopover);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEditPopover(); }, true);
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.key === 'Escape') closeEditPopover();
+  },
+  true,
+);
 document.addEventListener('click', (e) => {
   if (editTarget && !editPopover.contains(e.target as Node)) closeEditPopover();
 });
 
 // ── Plant image tooltip ─────────────────────────────────────────────────────
 // ── Plant image tooltip ─────────────────────────────────────────────────────
-const imgTooltip    = document.getElementById('plant-img-tooltip') as HTMLDivElement;
-const imgTipImg     = document.getElementById('plant-tip-img')     as HTMLImageElement;
-const imgTipSci     = document.getElementById('plant-tip-sci')     as HTMLDivElement;
-const imgTipName    = document.getElementById('plant-tip-name')    as HTMLDivElement;
-const imgTipMeta    = document.getElementById('plant-tip-meta')    as HTMLDivElement;
+const imgTooltip = document.getElementById('plant-img-tooltip') as HTMLDivElement;
+const imgTipImg = document.getElementById('plant-tip-img') as HTMLImageElement;
+const imgTipSci = document.getElementById('plant-tip-sci') as HTMLDivElement;
+const imgTipName = document.getElementById('plant-tip-name') as HTMLDivElement;
+const imgTipMeta = document.getElementById('plant-tip-meta') as HTMLDivElement;
 let imgTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
 function showImgTooltip(plant: Plant, chipEl: Element): void {
@@ -944,33 +1073,38 @@ function showImgTooltip(plant: Plant, chipEl: Element): void {
   imgTooltipTimer = setTimeout(() => {
     // Hide image immediately; show only once the new src has loaded
     imgTipImg.style.display = 'none';
-    imgTipImg.onload  = () => { imgTipImg.style.display = 'block'; };
-    imgTipImg.onerror = () => { imgTipImg.style.display = 'none'; };
+    imgTipImg.onload = () => {
+      imgTipImg.style.display = 'block';
+    };
+    imgTipImg.onerror = () => {
+      imgTipImg.style.display = 'none';
+    };
     imgTipImg.src = plant.image_url ?? '';
 
-    imgTipSci.textContent  = plant.scientific_name ?? '';
+    imgTipSci.textContent = plant.scientific_name ?? '';
     imgTipName.textContent = plant.name ?? '';
     const metaLines: string[] = [];
-    if (plant.family)       metaLines.push(`Family: ${plant.family}`);
-    if (plant.genus)        metaLines.push(`Genus: ${plant.genus}`);
+    if (plant.family) metaLines.push(`Family: ${plant.family}`);
+    if (plant.genus) metaLines.push(`Genus: ${plant.genus}`);
     if (plant.growth_habit) metaLines.push(`Habit: ${plant.growth_habit}`);
     imgTipMeta.innerHTML = metaLines.join('<br>');
 
     imgTooltip.style.display = 'block';
     const rect = chipEl.getBoundingClientRect();
     const tipW = 216;
-    const left = rect.right + 8 + tipW > window.innerWidth
-      ? rect.left - tipW - 8
-      : rect.right + 8;
+    const left = rect.right + 8 + tipW > window.innerWidth ? rect.left - tipW - 8 : rect.right + 8;
     imgTooltip.style.left = left + 'px';
-    imgTooltip.style.top  = Math.min(rect.top, window.innerHeight - 220) + 'px';
+    imgTooltip.style.top = Math.min(rect.top, window.innerHeight - 220) + 'px';
   }, 300);
 }
 
 function hideImgTooltip(): void {
-  if (imgTooltipTimer) { clearTimeout(imgTooltipTimer); imgTooltipTimer = null; }
+  if (imgTooltipTimer) {
+    clearTimeout(imgTooltipTimer);
+    imgTooltipTimer = null;
+  }
   imgTooltip.style.display = 'none';
-  imgTipImg.onload  = null;
+  imgTipImg.onload = null;
   imgTipImg.onerror = null;
 }
 
@@ -1015,8 +1149,12 @@ function makeChipIcon(plant: Plant): SVGSVGElement {
 }
 
 function makeChip(plant: Plant): HTMLDivElement {
-  const override  = plant.slug ? getOverride(plant.slug) : null;
-  const effective = { ...plant, spacing: override?.spacing ?? plant.spacing, color: override?.color ?? plant.color };
+  const override = plant.slug ? getOverride(plant.slug) : null;
+  const effective = {
+    ...plant,
+    spacing: override?.spacing ?? plant.spacing,
+    color: override?.color ?? plant.color,
+  };
 
   const chip = document.createElement('div');
   chip.className = 'plant-chip';
@@ -1036,7 +1174,10 @@ function makeChip(plant: Plant): HTMLDivElement {
     editBtn.draggable = false;
     editBtn.title = 'Edit spacing / colour';
     editBtn.textContent = '✎';
-    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditPopover(plant, chip); });
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditPopover(plant, chip);
+    });
     chip.appendChild(editBtn);
   }
 
@@ -1050,7 +1191,7 @@ function makeChip(plant: Plant): HTMLDivElement {
   if (plant.image_url || plant.scientific_name) {
     chip.addEventListener('mouseenter', () => showImgTooltip(plant, chip));
     chip.addEventListener('mouseleave', hideImgTooltip);
-    chip.addEventListener('dragstart',  hideImgTooltip);
+    chip.addEventListener('dragstart', hideImgTooltip);
   }
 
   return chip;
@@ -1059,7 +1200,7 @@ function makeChip(plant: Plant): HTMLDivElement {
 function renderSearchResults(plants: Plant[]): void {
   const el = document.getElementById('search-results') as HTMLDivElement;
   el.innerHTML = '';
-  plants.forEach(plant => el.appendChild(makeChip(plant)));
+  plants.forEach((plant) => el.appendChild(makeChip(plant)));
 }
 
 // ── Zoom / pan helpers ──────────────────────────────────────────────────────
@@ -1068,35 +1209,41 @@ function applyViewBox(): void {
 }
 
 const ZOOM_FACTOR = 1.15;
-const MIN_VBW = CANVAS_W * 0.1;   // max ~10× zoom in
-const MAX_VBW = CANVAS_W * 4;     // ~4× zoom out
+const MIN_VBW = CANVAS_W * 0.1; // max ~10× zoom in
+const MAX_VBW = CANVAS_W * 4; // ~4× zoom out
 
-svgEl.addEventListener('wheel', (e: WheelEvent) => {
-  e.preventDefault();
-  const pt  = svgCoords(e);
-  const factor = e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-  const newW = Math.min(MAX_VBW, Math.max(MIN_VBW, vbW * factor));
-  const newH = newW * (CANVAS_H / CANVAS_W);
-  const rect = svgEl.getBoundingClientRect();
-  const relX = (e.clientX - rect.left) / rect.width;
-  const relY = (e.clientY - rect.top)  / rect.height;
-  vbX = pt.x - relX * newW;
-  vbY = pt.y - relY * newH;
-  vbW = newW; vbH = newH;
-  applyViewBox();
-}, { passive: false });
+svgEl.addEventListener(
+  'wheel',
+  (e: WheelEvent) => {
+    e.preventDefault();
+    const pt = svgCoords(e);
+    const factor = e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    const newW = Math.min(MAX_VBW, Math.max(MIN_VBW, vbW * factor));
+    const newH = newW * (CANVAS_H / CANVAS_W);
+    const rect = svgEl.getBoundingClientRect();
+    const relX = (e.clientX - rect.left) / rect.width;
+    const relY = (e.clientY - rect.top) / rect.height;
+    vbX = pt.x - relX * newW;
+    vbY = pt.y - relY * newH;
+    vbW = newW;
+    vbH = newH;
+    applyViewBox();
+  },
+  { passive: false },
+);
 
 // ── Drag-and-drop onto SVG ─────────────────────────────────────────────────
 function svgCoords(e: MouseEvent): { x: number; y: number } {
   const pt = svgEl.createSVGPoint();
-  pt.x = e.clientX; pt.y = e.clientY;
+  pt.x = e.clientX;
+  pt.y = e.clientY;
   const s = pt.matrixTransform(svgEl.getScreenCTM()!.inverse());
   return { x: s.x, y: s.y };
 }
 
 // Fill a shape with a grid of plant markers, skipping positions already occupied.
 function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
-  const areaM2    = calcArea(shape, sessionScale);
+  const areaM2 = calcArea(shape, sessionScale);
   const estimated = calcFillCount(areaM2, shape.plantMarkers.length, plant.spacing);
 
   if (estimated <= 0) {
@@ -1105,15 +1252,16 @@ function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
   }
 
   const stepPx = plant.spacing * sessionScale;
-  const bb     = shapeBoundingBox(shape);
-  let placed   = 0;
+  const bb = shapeBoundingBox(shape);
+  let placed = 0;
 
   for (let gy = bb.y + stepPx / 2; gy < bb.y + bb.h; gy += stepPx) {
     for (let gx = bb.x + stepPx / 2; gx < bb.x + bb.w; gx += stepPx) {
       if (!pointInShape(shape, gx, gy)) continue;
       // Skip if too close to any existing marker
-      const occupied = shape.plantMarkers.some(m => {
-        const dx = m.x - gx, dy = m.y - gy;
+      const occupied = shape.plantMarkers.some((m) => {
+        const dx = m.x - gx,
+          dy = m.y - gy;
         return Math.sqrt(dx * dx + dy * dy) < stepPx * 0.9;
       });
       if (occupied) continue;
@@ -1151,7 +1299,10 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
 
   let targetShape: ShapeData | null = null;
   for (let i = shapes.length - 1; i >= 0; i--) {
-    if (pointInShape(shapes[i], x, y)) { targetShape = shapes[i]; break; }
+    if (pointInShape(shapes[i], x, y)) {
+      targetShape = shapes[i];
+      break;
+    }
   }
   if (!targetShape) return;
 
@@ -1182,9 +1333,11 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
   // ── Middle-click or space+left-click → pan ─────────────────────────────
   if (e.button === 1 || (e.button === 0 && spaceDown)) {
     e.preventDefault();
-    panning     = true;
-    panStartX   = e.clientX; panStartY   = e.clientY;
-    panVbStartX = vbX;       panVbStartY = vbY;
+    panning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panVbStartX = vbX;
+    panVbStartY = vbY;
     svgEl.style.cursor = 'grabbing';
     return;
   }
@@ -1194,13 +1347,15 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     const markerGroup = (e.target as Element).closest('[data-marker]') as SVGGElement | null;
     if (markerGroup) {
       for (const d of shapes) {
-        const m = d.plantMarkers.find(pm => pm.el === markerGroup);
+        const m = d.plantMarkers.find((pm) => pm.el === markerGroup);
         if (m) {
           selectMarker(m, d);
           const pt = svgCoords(e);
-          dragMouseStartX = pt.x; dragMouseStartY = pt.y;
+          dragMouseStartX = pt.x;
+          dragMouseStartY = pt.y;
           draggingMarker = m;
-          dragMarkerOrigX = m.x; dragMarkerOrigY = m.y;
+          dragMarkerOrigX = m.x;
+          dragMarkerOrigY = m.y;
           e.preventDefault();
           return;
         }
@@ -1217,8 +1372,11 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     if (calibPts.length >= 2) return; // wait for overlay
     const pt = svgCoords(e);
     const dot = document.createElementNS(NS, 'circle') as SVGCircleElement;
-    dot.setAttribute('cx', String(pt.x)); dot.setAttribute('cy', String(pt.y));
-    dot.setAttribute('r', '5'); dot.setAttribute('fill', '#f44336'); dot.setAttribute('stroke', '#fff');
+    dot.setAttribute('cx', String(pt.x));
+    dot.setAttribute('cy', String(pt.y));
+    dot.setAttribute('r', '5');
+    dot.setAttribute('fill', '#f44336');
+    dot.setAttribute('stroke', '#fff');
     dot.setAttribute('stroke-width', '1.5');
     dot.style.pointerEvents = 'none';
     overlayLayer.appendChild(dot);
@@ -1229,15 +1387,18 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
       statusMsg.textContent = 'Click second point…';
     } else {
       calibLineEl = document.createElementNS(NS, 'line') as SVGLineElement;
-      calibLineEl.setAttribute('x1', String(calibPts[0].x)); calibLineEl.setAttribute('y1', String(calibPts[0].y));
-      calibLineEl.setAttribute('x2', String(pt.x)); calibLineEl.setAttribute('y2', String(pt.y));
-      calibLineEl.setAttribute('stroke', '#f44336'); calibLineEl.setAttribute('stroke-dasharray', '6,4');
+      calibLineEl.setAttribute('x1', String(calibPts[0].x));
+      calibLineEl.setAttribute('y1', String(calibPts[0].y));
+      calibLineEl.setAttribute('x2', String(pt.x));
+      calibLineEl.setAttribute('y2', String(pt.y));
+      calibLineEl.setAttribute('stroke', '#f44336');
+      calibLineEl.setAttribute('stroke-dasharray', '6,4');
       calibLineEl.setAttribute('stroke-width', '2');
       calibLineEl.style.pointerEvents = 'none';
       overlayLayer.appendChild(calibLineEl);
       const svgRect = svgEl.getBoundingClientRect();
-      calibOverlay.style.left = (svgRect.left + (calibPts[0].x + pt.x) / 2) + 'px';
-      calibOverlay.style.top  = (svgRect.top  + (calibPts[0].y + pt.y) / 2 - 20) + 'px';
+      calibOverlay.style.left = svgRect.left + (calibPts[0].x + pt.x) / 2 + 'px';
+      calibOverlay.style.top = svgRect.top + (calibPts[0].y + pt.y) / 2 - 20 + 'px';
       calibOverlay.style.display = 'block';
       calibInput.value = '';
       calibInput.focus();
@@ -1255,7 +1416,7 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
       statusMsg.textContent = 'Click to add points. Click first point to close (≥ 3 points).';
     } else {
       const first = polyPts[0];
-      const dist  = Math.hypot(pt.x - first.x, pt.y - first.y);
+      const dist = Math.hypot(pt.x - first.x, pt.y - first.y);
       if (dist <= SNAP_RADIUS && polyPts.length >= 3) {
         finalizePolygon();
       } else {
@@ -1273,8 +1434,10 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     if (e.target === bgImageEl) {
       movingBg = true;
       const pt = svgCoords(e);
-      moveBgStartX = pt.x; moveBgStartY = pt.y;
-      moveBgOrigX  = bgX;  moveBgOrigY  = bgY;
+      moveBgStartX = pt.x;
+      moveBgStartY = pt.y;
+      moveBgOrigX = bgX;
+      moveBgOrigY = bgY;
       return;
     }
     const hit = (e.target as Element).closest('[data-shape]');
@@ -1282,34 +1445,47 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
     selectShape(d);
     if (d) {
       const pt = svgCoords(e);
-      dragMouseStartX = pt.x; dragMouseStartY = pt.y;
+      dragMouseStartX = pt.x;
+      dragMouseStartY = pt.y;
       draggingShape = d;
-      if (d.type === 'rect')    { dragShapeOrigRectX = d.x; dragShapeOrigRectY = d.y; }
-      else if (d.type === 'circle' || d.type === 'ellipse') { dragShapeOrigCx = d.cx; dragShapeOrigCy = d.cy; }
-      else if (d.type === 'polygon') { dragShapeOrigPoints = d.points.map(p => ({ ...p })); }
-      dragShapeMarkersOrig = d.plantMarkers.map(m => ({ x: m.x, y: m.y }));
+      if (d.type === 'rect') {
+        dragShapeOrigRectX = d.x;
+        dragShapeOrigRectY = d.y;
+      } else if (d.type === 'circle' || d.type === 'ellipse') {
+        dragShapeOrigCx = d.cx;
+        dragShapeOrigCy = d.cy;
+      } else if (d.type === 'polygon') {
+        dragShapeOrigPoints = d.points.map((p) => ({ ...p }));
+      }
+      dragShapeMarkersOrig = d.plantMarkers.map((m) => ({ x: m.x, y: m.y }));
     }
     return;
   }
 
   const p = svgCoords(e);
-  startX = p.x; startY = p.y;
+  startX = p.x;
+  startY = p.y;
   drawing = true;
 
   const { fill, stroke } = nextColor();
 
   if (currentTool === 'rect') {
     activeEl = document.createElementNS(NS, 'rect') as SVGRectElement;
-    activeEl.setAttribute('x', String(startX)); activeEl.setAttribute('y', String(startY));
-    activeEl.setAttribute('width', '0');  activeEl.setAttribute('height', '0');
+    activeEl.setAttribute('x', String(startX));
+    activeEl.setAttribute('y', String(startY));
+    activeEl.setAttribute('width', '0');
+    activeEl.setAttribute('height', '0');
   } else if (currentTool === 'circle') {
     activeEl = document.createElementNS(NS, 'circle') as SVGCircleElement;
-    activeEl.setAttribute('cx', String(startX)); activeEl.setAttribute('cy', String(startY));
+    activeEl.setAttribute('cx', String(startX));
+    activeEl.setAttribute('cy', String(startY));
     activeEl.setAttribute('r', '0');
   } else if (currentTool === 'ellipse') {
     activeEl = document.createElementNS(NS, 'ellipse') as SVGEllipseElement;
-    activeEl.setAttribute('cx', String(startX)); activeEl.setAttribute('cy', String(startY));
-    activeEl.setAttribute('rx', '0'); activeEl.setAttribute('ry', '0');
+    activeEl.setAttribute('cx', String(startX));
+    activeEl.setAttribute('cy', String(startY));
+    activeEl.setAttribute('rx', '0');
+    activeEl.setAttribute('ry', '0');
   }
 
   if (!activeEl) return;
@@ -1318,7 +1494,7 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
   activeEl.setAttribute('stroke-width', DEF_SW);
   (activeEl as SVGElement & { dataset: DOMStringMap }).dataset['shape'] = '1';
   activeEl.style.cursor = 'pointer';
-  (activeEl as SVGElement & Record<string, string>)['_fill']   = fill;
+  (activeEl as SVGElement & Record<string, string>)['_fill'] = fill;
   (activeEl as SVGElement & Record<string, string>)['_stroke'] = stroke;
 
   shapesLayer.appendChild(activeEl);
@@ -1328,8 +1504,8 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
 svgEl.addEventListener('mousemove', (e: MouseEvent) => {
   if (panning) {
     const rect = svgEl.getBoundingClientRect();
-    vbX = panVbStartX - (e.clientX - panStartX) / rect.width  * vbW;
-    vbY = panVbStartY - (e.clientY - panStartY) / rect.height * vbH;
+    vbX = panVbStartX - ((e.clientX - panStartX) / rect.width) * vbW;
+    vbY = panVbStartY - ((e.clientY - panStartY) / rect.height) * vbH;
     applyViewBox();
     return;
   }
@@ -1337,13 +1513,13 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
     const pt = svgCoords(e);
     updatePolyPreview(pt);
     // Snap indicator: enlarge first vertex dot when cursor can close the polygon
-    const first    = polyPts[0];
-    const dist     = Math.hypot(pt.x - first.x, pt.y - first.y);
+    const first = polyPts[0];
+    const dist = Math.hypot(pt.x - first.x, pt.y - first.y);
     const canClose = polyPts.length >= 3;
-    polyVertexDots[0].setAttribute('r', (dist <= SNAP_RADIUS && canClose) ? '8' : '5');
-    polyVertexDots[0].setAttribute('stroke-width', (dist <= SNAP_RADIUS && canClose) ? '2.5' : '1.5');
+    polyVertexDots[0].setAttribute('r', dist <= SNAP_RADIUS && canClose ? '8' : '5');
+    polyVertexDots[0].setAttribute('stroke-width', dist <= SNAP_RADIUS && canClose ? '2.5' : '1.5');
     // Show live segment length
-    const last   = polyPts[polyPts.length - 1];
+    const last = polyPts[polyPts.length - 1];
     const segLen = Math.hypot(pt.x - last.x, pt.y - last.y);
     if (segLen > 1) updateDimLabel(pt.x, pt.y - 16, fmt(pxToM(segLen, sessionScale)) + ' m');
     return;
@@ -1355,7 +1531,11 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
   }
   if (draggingMarker) {
     const pt = svgCoords(e);
-    moveMarkerEl(draggingMarker, dragMarkerOrigX + (pt.x - dragMouseStartX), dragMarkerOrigY + (pt.y - dragMouseStartY));
+    moveMarkerEl(
+      draggingMarker,
+      dragMarkerOrigX + (pt.x - dragMouseStartX),
+      dragMarkerOrigY + (pt.y - dragMouseStartY),
+    );
     return;
   }
   if (movingBg && bgImageEl) {
@@ -1370,24 +1550,39 @@ svgEl.addEventListener('mousemove', (e: MouseEvent) => {
   const p = svgCoords(e);
 
   if (currentTool === 'rect') {
-    const x = Math.min(startX, p.x), y = Math.min(startY, p.y);
-    const w = Math.abs(p.x - startX),  h = Math.abs(p.y - startY);
-    activeEl.setAttribute('x', String(x)); activeEl.setAttribute('y', String(y));
-    activeEl.setAttribute('width', String(w)); activeEl.setAttribute('height', String(h));
-    updateDimLabel(x + w / 2, y - 12, `${fmt(pxToM(w, sessionScale))} × ${fmt(pxToM(h, sessionScale))} m`);
-
+    const x = Math.min(startX, p.x),
+      y = Math.min(startY, p.y);
+    const w = Math.abs(p.x - startX),
+      h = Math.abs(p.y - startY);
+    activeEl.setAttribute('x', String(x));
+    activeEl.setAttribute('y', String(y));
+    activeEl.setAttribute('width', String(w));
+    activeEl.setAttribute('height', String(h));
+    updateDimLabel(
+      x + w / 2,
+      y - 12,
+      `${fmt(pxToM(w, sessionScale))} × ${fmt(pxToM(h, sessionScale))} m`,
+    );
   } else if (currentTool === 'circle') {
-    const dx = p.x - startX, dy = p.y - startY;
+    const dx = p.x - startX,
+      dy = p.y - startY;
     const r = Math.sqrt(dx * dx + dy * dy);
     activeEl.setAttribute('r', String(r));
     updateDimLabel(startX, startY - r - 14, `r = ${fmt(pxToM(r, sessionScale))} m`);
-
   } else if (currentTool === 'ellipse') {
-    const rx = Math.abs(p.x - startX) / 2, ry = Math.abs(p.y - startY) / 2;
-    const cx = (startX + p.x) / 2,          cy = (startY + p.y) / 2;
-    activeEl.setAttribute('cx', String(cx)); activeEl.setAttribute('cy', String(cy));
-    activeEl.setAttribute('rx', String(rx)); activeEl.setAttribute('ry', String(ry));
-    updateDimLabel(cx, cy - ry - 14, `${fmt(pxToM(rx * 2, sessionScale))} × ${fmt(pxToM(ry * 2, sessionScale))} m`);
+    const rx = Math.abs(p.x - startX) / 2,
+      ry = Math.abs(p.y - startY) / 2;
+    const cx = (startX + p.x) / 2,
+      cy = (startY + p.y) / 2;
+    activeEl.setAttribute('cx', String(cx));
+    activeEl.setAttribute('cy', String(cy));
+    activeEl.setAttribute('rx', String(rx));
+    activeEl.setAttribute('ry', String(ry));
+    updateDimLabel(
+      cx,
+      cy - ry - 14,
+      `${fmt(pxToM(rx * 2, sessionScale))} × ${fmt(pxToM(ry * 2, sessionScale))} m`,
+    );
   }
 });
 
@@ -1399,20 +1594,27 @@ document.addEventListener('mouseup', () => {
   }
   draggingShape = null;
   draggingMarker = null;
-  if (movingBg) { movingBg = false; return; }
+  if (movingBg) {
+    movingBg = false;
+    return;
+  }
   if (!drawing || !activeEl) return;
   drawing = false;
   hideDimLabel();
 
   let d: ShapeData | null = null;
   const el = activeEl;
-  const fill  = (el as SVGElement & Record<string, string>)['_fill'];
+  const fill = (el as SVGElement & Record<string, string>)['_fill'];
   const stroke = (el as SVGElement & Record<string, string>)['_stroke'];
 
   if (currentTool === 'rect') {
-    const w = parseFloat(el.getAttribute('width')  ?? '0') || 0;
+    const w = parseFloat(el.getAttribute('width') ?? '0') || 0;
     const h = parseFloat(el.getAttribute('height') ?? '0') || 0;
-    if (w < 4 || h < 4) { el.remove(); activeEl = null; return; }
+    if (w < 4 || h < 4) {
+      el.remove();
+      activeEl = null;
+      return;
+    }
     d = {
       type: 'rect',
       el: el as SVGGeometryElement,
@@ -1420,12 +1622,18 @@ document.addEventListener('mouseup', () => {
       plantMarkers: [],
       x: parseFloat(el.getAttribute('x') ?? '0'),
       y: parseFloat(el.getAttribute('y') ?? '0'),
-      w, h, fill, stroke,
+      w,
+      h,
+      fill,
+      stroke,
     };
-
   } else if (currentTool === 'circle') {
     const r = parseFloat(el.getAttribute('r') ?? '0') || 0;
-    if (r < 4) { el.remove(); activeEl = null; return; }
+    if (r < 4) {
+      el.remove();
+      activeEl = null;
+      return;
+    }
     d = {
       type: 'circle',
       el: el as SVGGeometryElement,
@@ -1433,13 +1641,18 @@ document.addEventListener('mouseup', () => {
       plantMarkers: [],
       cx: parseFloat(el.getAttribute('cx') ?? '0'),
       cy: parseFloat(el.getAttribute('cy') ?? '0'),
-      r, fill, stroke,
+      r,
+      fill,
+      stroke,
     };
-
   } else if (currentTool === 'ellipse') {
     const rx = parseFloat(el.getAttribute('rx') ?? '0') || 0;
     const ry = parseFloat(el.getAttribute('ry') ?? '0') || 0;
-    if (rx < 4 || ry < 4) { el.remove(); activeEl = null; return; }
+    if (rx < 4 || ry < 4) {
+      el.remove();
+      activeEl = null;
+      return;
+    }
     d = {
       type: 'ellipse',
       el: el as SVGGeometryElement,
@@ -1447,11 +1660,17 @@ document.addEventListener('mouseup', () => {
       plantMarkers: [],
       cx: parseFloat(el.getAttribute('cx') ?? '0'),
       cy: parseFloat(el.getAttribute('cy') ?? '0'),
-      rx, ry, fill, stroke,
+      rx,
+      ry,
+      fill,
+      stroke,
     };
   }
 
-  if (!d) { activeEl = null; return; }
+  if (!d) {
+    activeEl = null;
+    return;
+  }
 
   d.labelEl = makeLabelEl();
   updateLabelEl(d);

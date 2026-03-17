@@ -2,20 +2,39 @@
   "name": "planteringsprogram",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
+    "format": "prettier --write src scripts index.html",
+    "type-check": "tsc --noEmit",
     "fetch-plants": "tsx scripts/fetch-plants.ts",
-    "enrich-plants": "tsx scripts/enrich-plants.ts"
+    "enrich-plants": "tsx scripts/enrich-plants.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": ["eslint --fix", "prettier --write"],
+    "scripts/**/*.ts": ["eslint --fix", "prettier --write"],
+    "index.html": ["prettier --write"]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.19.3",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
   },
