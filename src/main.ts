@@ -12,6 +12,7 @@ import {
 } from './markers';
 
 import { buildChipEl } from './chips';
+import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
 import {
   SCALE,
   CANVAS_W,
@@ -951,23 +952,12 @@ let imgTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 function showImgTooltip(plant: Plant, chipEl: Element): void {
   if (imgTooltipTimer) clearTimeout(imgTooltipTimer);
   imgTooltipTimer = setTimeout(() => {
-    // Hide image immediately; show only once the new src has loaded
-    imgTipImg.style.display = 'none';
-    imgTipImg.onload = () => {
-      imgTipImg.style.display = 'block';
-    };
-    imgTipImg.onerror = () => {
-      imgTipImg.style.display = 'none';
-    };
-    imgTipImg.src = plant.image_url ?? '';
-
-    imgTipSci.textContent = plant.scientific_name ?? '';
-    imgTipName.textContent = plant.name ?? '';
-    const metaLines: string[] = [];
-    if (plant.family) metaLines.push(`Family: ${plant.family}`);
-    if (plant.genus) metaLines.push(`Genus: ${plant.genus}`);
-    if (plant.growth_habit) metaLines.push(`Habit: ${plant.growth_habit}`);
-    imgTipMeta.innerHTML = metaLines.join('<br>');
+    applyTooltipContent(plant, {
+      img: imgTipImg,
+      sciEl: imgTipSci,
+      nameEl: imgTipName,
+      metaEl: imgTipMeta,
+    });
 
     imgTooltip.style.display = 'block';
     const rect = chipEl.getBoundingClientRect();
@@ -984,8 +974,7 @@ function hideImgTooltip(): void {
     imgTooltipTimer = null;
   }
   imgTooltip.style.display = 'none';
-  imgTipImg.onload = null;
-  imgTipImg.onerror = null;
+  clearTooltipHandlers(imgTipImg);
 }
 
 function makeChip(plant: Plant): HTMLDivElement {
