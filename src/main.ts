@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { searchPlants } from './search';
 import { getOverride, setOverride } from './plantStore';
+import { summaryDisplayName, aggregatePlantCounts } from './summary';
 import {
   NS,
   FLOWER_RADIUS,
@@ -411,15 +412,7 @@ function renderUsedPlants(): void {
 }
 
 function updateSummary(): void {
-  const totals = new Map<string, { count: number; plant: Plant }>();
-  for (const d of shapes) {
-    for (const m of d.plantMarkers) {
-      const key = m.plant.slug ?? m.plant.scientific_name ?? m.plant.name;
-      const entry = totals.get(key);
-      if (entry) entry.count++;
-      else totals.set(key, { count: 1, plant: m.plant });
-    }
-  }
+  const totals = aggregatePlantCounts(shapes);
   renderUsedPlants();
   if (totals.size === 0) {
     summaryContent.innerHTML = '<div class="info-empty">No plants placed yet.</div>';
@@ -429,7 +422,7 @@ function updateSummary(): void {
   let grandTotal = 0;
   for (const { count, plant } of totals.values()) {
     grandTotal += count;
-    const displayName = plant.scientific_name ?? plant.name;
+    const displayName = summaryDisplayName(plant);
     const row = document.createElement('div');
     row.className = 'summary-row';
     row.innerHTML = `
