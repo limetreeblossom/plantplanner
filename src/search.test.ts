@@ -19,6 +19,26 @@ describe('searchPlants', () => {
     expect(searchPlants('a', 5)).toHaveLength(5);
     expect(searchPlants('a', 1)).toHaveLength(1);
   });
+
+  it('matches from the start of any word in the name', () => {
+    const results = searchPlants('Mel', 50);
+    expect(results.length).toBeGreaterThan(0);
+    results.forEach((p) => expect(p.scientific_name?.toLowerCase()).toMatch(/(^|\s)mel/i));
+  });
+
+  it('matches from the start of the species (second word)', () => {
+    // "alb" should match e.g. "Melilotus albus" via the second word
+    const results = searchPlants('alb', 50);
+    expect(results.length).toBeGreaterThan(0);
+    results.forEach((p) => expect(p.scientific_name?.toLowerCase()).toMatch(/(^|\s)alb/i));
+  });
+
+  it('does not match mid-word substrings', () => {
+    // "otus" appears mid-word in "Melilotus" — should return no results
+    // (or at least none whose name contains "otus" only mid-word)
+    const results = searchPlants('otus', 50);
+    results.forEach((p) => expect(p.scientific_name?.toLowerCase()).toMatch(/(^|\s)otus/i));
+  });
 });
 
 // ── computeSpacing ────────────────────────────────────────────────────────────

@@ -146,8 +146,9 @@ const ALL_PLANTS = rawData as RawPlant[];
 
 export function searchPlants(query: string, limit = 20): Plant[] {
   if (!query.trim()) return [];
-  const q = query.toLowerCase();
-  return ALL_PLANTS.filter((r) => r.scientific_name.toLowerCase().includes(q))
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(^|\\s)${escaped}`, 'i');
+  return ALL_PLANTS.filter((r) => re.test(r.scientific_name))
     .slice(0, limit)
     .map(rawToPlant);
 }
