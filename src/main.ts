@@ -40,12 +40,12 @@ const STROKE_COLORS: string[] = ['#999'];
 let colorIndex = 0;
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
-const svgEl = document.getElementById('canvas') as SVGSVGElement;
-const bgLayer = document.getElementById('bg-layer') as SVGGElement;
-const shapesLayer = document.getElementById('shapes-layer') as SVGGElement;
-const markersLayer = document.getElementById('markers-layer') as SVGGElement;
-const labelLayer = document.getElementById('label-layer') as SVGGElement;
-const overlayLayer = document.getElementById('overlay-layer') as SVGGElement;
+const svgEl = document.getElementById('canvas') as unknown as SVGSVGElement;
+const bgLayer = document.getElementById('bg-layer') as unknown as SVGGElement;
+const shapesLayer = document.getElementById('shapes-layer') as unknown as SVGGElement;
+const markersLayer = document.getElementById('markers-layer') as unknown as SVGGElement;
+const labelLayer = document.getElementById('label-layer') as unknown as SVGGElement;
+const overlayLayer = document.getElementById('overlay-layer') as unknown as SVGGElement;
 const infoContent = document.getElementById('info-content') as HTMLDivElement;
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
 const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
@@ -125,7 +125,7 @@ let spaceDown = false;
 
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
-  const g = document.getElementById('grid-layer') as SVGGElement;
+  const g = document.getElementById('grid-layer') as unknown as SVGGElement;
   g.innerHTML = '';
 
   const major = scale; // 1 m
@@ -663,8 +663,8 @@ function finalizePolygon(): void {
   el.setAttribute('stroke-width', DEF_SW);
   (el as SVGElement & { dataset: DOMStringMap }).dataset['shape'] = '1';
   el.style.cursor = 'pointer';
-  (el as SVGElement & Record<string, string>)['_fill'] = fill;
-  (el as SVGElement & Record<string, string>)['_stroke'] = stroke;
+  (el as unknown as Record<string, string>)['_fill'] = fill;
+  (el as unknown as Record<string, string>)['_stroke'] = stroke;
   shapesLayer.appendChild(el);
 
   const d: PolygonShape = {
