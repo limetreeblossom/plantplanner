@@ -1488,7 +1488,9 @@ function saveDesign(): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'flowerbed.json';
+  const projectName = (document.getElementById('project-name') as HTMLInputElement).value.trim();
+  const filename = projectName ? `${projectName}.json` : 'flowerbed.json';
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1654,11 +1656,13 @@ loadFileInput.addEventListener('change', () => {
     }
   }
   const reader = new FileReader();
+  const projectNameInput = document.getElementById('project-name') as HTMLInputElement;
   reader.onload = (ev) => {
     try {
       const data = parseSaveData(ev.target!.result as string);
       clearCanvas();
       restoreDesign(data);
+      projectNameInput.value = file.name.replace(/\.json$/i, '');
       statusMsg.textContent = 'Design loaded.';
     } catch (e) {
       alert(`Failed to load: ${e instanceof Error ? e.message : 'Unknown error'}`);

@@ -54,6 +54,18 @@
         gap: 4px;
       }
 
+      #project-name {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 0.82rem;
+        width: 130px;
+        outline: none;
+      }
+      #project-name:focus {
+        border-color: #88c988;
+      }
+
       #app-title {
         font-size: 1rem;
         font-weight: 700;
@@ -635,14 +647,17 @@
 
       <div class="sep"></div>
       <div class="toolbar-group">
-        <span class="toolbar-group-label">File</span>
+        <span class="toolbar-group-label">Project</span>
         <div class="toolbar-group-btns">
-          <button class="tool-btn" id="save-btn" title="Save design to file">Save project</button>
-          <button class="tool-btn" id="load-btn" title="Load design from file">Load project</button>
+          <input
+            type="text"
+            id="project-name"
+            placeholder="Project name"
+            title="Project name (used as filename on save)"
+          />
+          <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
+          <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
           <input type="file" id="load-file-input" accept=".json" style="display: none" />
-          <button class="tool-btn" id="export-xls-btn" title="Export plant summary to Excel">
-            Export plant summary
-          </button>
         </div>
       </div>
       <div class="sep"></div>
@@ -733,6 +748,13 @@
           <div id="summary-content">
             <div class="info-empty">No plants placed yet.</div>
           </div>
+          <button
+            id="export-xls-btn"
+            title="Export plant summary to Excel"
+            style="margin-top: 10px; width: 100%"
+          >
+            Export
+          </button>
         </div>
       </div>
     </div>
