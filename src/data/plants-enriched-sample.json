@@ -1,0 +1,258 @@
+[
+  {
+    "name": "Common nettle",
+    "scientific_name": "Urtica dioica",
+    "slug": "urtica-dioica",
+    "family": "Urticaceae",
+    "family_common_name": null,
+    "genus": "Urtica",
+    "image_url": "https://bs.plantnet.org/image/o/9db58cbb3538a6b77384f972971d51869228e545",
+    "flower_colors": [
+      "green"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Forb/herb",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "jun",
+      "jul",
+      "aug",
+      "sep",
+      "oct"
+    ],
+    "light": 5,
+    "ph_min": 6.5,
+    "ph_max": 7,
+    "min_temp_c": null
+  },
+  {
+    "name": "Barnyard grass",
+    "scientific_name": "Dactylis glomerata",
+    "slug": "dactylis-glomerata",
+    "family": "Poaceae",
+    "family_common_name": null,
+    "genus": "Dactylis",
+    "image_url": "https://bs.plantnet.org/image/o/f84a7d4fc2e627ccd451f568479b1932c2b2d900",
+    "flower_colors": [
+      "green"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Graminoid",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "apr",
+      "may",
+      "jun",
+      "jul",
+      "aug",
+      "sep"
+    ],
+    "light": 7,
+    "ph_min": 5.2,
+    "ph_max": 7.5,
+    "min_temp_c": null
+  },
+  {
+    "name": "Narrow-leaf plantain",
+    "scientific_name": "Plantago lanceolata",
+    "slug": "plantago-lanceolata",
+    "family": "Plantaginaceae",
+    "family_common_name": null,
+    "genus": "Plantago",
+    "image_url": "https://bs.plantnet.org/image/o/f8d7d6fe52e36d04f5ad1fc03f46f604d5c3cc43",
+    "flower_colors": null,
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Forb/herb",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": null,
+    "light": 7,
+    "ph_min": 5.5,
+    "ph_max": 6.5,
+    "min_temp_c": null
+  },
+  {
+    "name": "Milfoil",
+    "scientific_name": "Achillea millefolium",
+    "slug": "achillea-millefolium",
+    "family": "Asteraceae",
+    "family_common_name": "Aster family",
+    "genus": "Achillea",
+    "image_url": "https://bs.plantnet.org/image/o/d788a757cd8bac8c3b1378a970c078a7a937a174",
+    "flower_colors": null,
+    "foliage_colors": null,
+    "spread_cm": 45,
+    "row_spacing_cm": 45,
+    "growth_habit": "Forb/herb",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": null,
+    "light": 8,
+    "ph_min": 6,
+    "ph_max": 8,
+    "min_temp_c": null
+  },
+  {
+    "name": "Dutch clover",
+    "scientific_name": "Trifolium repens",
+    "slug": "trifolium-repens",
+    "family": "Fabaceae",
+    "family_common_name": null,
+    "genus": "Trifolium",
+    "image_url": "https://bs.plantnet.org/image/o/170ca6a6020d9e9f95f86112577aeabcb23f5b96",
+    "flower_colors": [
+      "white"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Forb/herb",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": null,
+    "light": 7,
+    "ph_min": 6,
+    "ph_max": 7,
+    "min_temp_c": null
+  },
+  {
+    "name": "Yorkshire-fog",
+    "scientific_name": "Holcus lanatus",
+    "slug": "holcus-lanatus",
+    "family": "Poaceae",
+    "family_common_name": null,
+    "genus": "Holcus",
+    "image_url": "https://bs.plantnet.org/image/o/c0800816e2f56ed6e7702c31efd91afcdfddd68c",
+    "flower_colors": [
+      "purple"
+    ],
+    "foliage_colors": [
+      "grey"
+    ],
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Graminoid",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "may",
+      "jun",
+      "jul",
+      "aug"
+    ],
+    "light": 7,
+    "ph_min": 4,
+    "ph_max": 7,
+    "min_temp_c": null
+  },
+  {
+    "name": "Creeping buttercup",
+    "scientific_name": "Ranunculus repens",
+    "slug": "ranunculus-repens",
+    "family": "Ranunculaceae",
+    "family_common_name": null,
+    "genus": "Ranunculus",
+    "image_url": "https://bs.plantnet.org/image/o/90746f2a4592ed4dbc6a166234f488654565605e",
+    "flower_colors": [
+      "yellow"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Forb/herb",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "may",
+      "jun",
+      "jul",
+      "aug",
+      "sep"
+    ],
+    "light": 5,
+    "ph_min": 5.6,
+    "ph_max": 7.2,
+    "min_temp_c": null
+  },
+  {
+    "name": "Pedunculate oak",
+    "scientific_name": "Quercus robur",
+    "slug": "quercus-robur",
+    "family": "Fagaceae",
+    "family_common_name": null,
+    "genus": "Quercus",
+    "image_url": "https://bs.plantnet.org/image/o/0d16977470dfdcd37d495a5b33c2f343224ebe98",
+    "flower_colors": [
+      "yellow"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Tree",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "apr",
+      "may"
+    ],
+    "light": 7,
+    "ph_min": 5.5,
+    "ph_max": 6.5,
+    "min_temp_c": null
+  },
+  {
+    "name": "Red fescue",
+    "scientific_name": "Festuca rubra",
+    "slug": "festuca-rubra",
+    "family": "Poaceae",
+    "family_common_name": null,
+    "genus": "Festuca",
+    "image_url": "https://bs.plantnet.org/image/o/fb1967942b880fb7c978ff76741d348a22611b88",
+    "flower_colors": null,
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Graminoid",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": null,
+    "light": 9,
+    "ph_min": 5,
+    "ph_max": 8,
+    "min_temp_c": null
+  },
+  {
+    "name": "European ash",
+    "scientific_name": "Fraxinus excelsior",
+    "slug": "fraxinus-excelsior",
+    "family": "Oleaceae",
+    "family_common_name": "Olive family",
+    "genus": "Fraxinus",
+    "image_url": "https://bs.plantnet.org/image/o/84ef20b0276c3e0a6d32dd97a7b987b510feb961",
+    "flower_colors": [
+      "brown"
+    ],
+    "foliage_colors": null,
+    "spread_cm": null,
+    "row_spacing_cm": null,
+    "growth_habit": "Tree",
+    "max_height_cm": null,
+    "avg_height_cm": null,
+    "bloom_months": [
+      "apr",
+      "may"
+    ],
+    "light": 7,
+    "ph_min": 7,
+    "ph_max": 7.5,
+    "min_temp_c": null
+  }
+]
