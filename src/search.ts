@@ -123,7 +123,7 @@ export function rawToPlant(raw: RawPlant): Plant {
     ? bestFlowerColor(enriched.flower_colors)
     : null;
 
-  const isTree = enriched?.growth_habit === 'Tree';
+  const isTree = /tree|shrub/i.test(enriched?.growth_habit ?? '');
   const spacing = computeSpacing(enriched?.spread_cm, enriched?.row_spacing_cm, isTree);
 
   return {

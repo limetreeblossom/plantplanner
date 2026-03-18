@@ -83,7 +83,7 @@ describe('rawToPlant icon field', () => {
 
   it('does not set icon for non-tree plants', () => {
     const results = searchPlants('rosa', 10);
-    const nonTrees = results.filter((p) => p.growth_habit !== 'Tree');
+    const nonTrees = results.filter((p) => !/tree|shrub/i.test(p.growth_habit ?? ''));
     nonTrees.forEach((p) => expect(p.icon).toBeUndefined());
   });
 });
