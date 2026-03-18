@@ -36,6 +36,23 @@
         flex-shrink: 0;
       }
 
+      .toolbar-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .toolbar-group-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #bbb;
+        padding: 0 2px;
+      }
+      .toolbar-group-btns {
+        display: flex;
+        gap: 4px;
+      }
+
       #app-title {
         font-size: 1rem;
         font-weight: 700;
@@ -575,25 +592,38 @@
     <div id="toolbar">
       <span id="app-title">Flowerbed Planner</span>
 
-      <button class="tool-btn active" data-tool="select" title="Select (S)">Select</button>
       <div class="sep"></div>
-      <button class="tool-btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
-      <button class="tool-btn" data-tool="circle" title="Circle (C)">Circle</button>
-      <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
-      <button class="tool-btn" data-tool="polygon" title="Polygon (P)">Polygon</button>
+      <div class="toolbar-group">
+        <span class="toolbar-group-label">Add flower bed</span>
+        <div class="toolbar-group-btns">
+          <button class="tool-btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
+          <button class="tool-btn" data-tool="circle" title="Circle (C)">Circle</button>
+          <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
+          <button class="tool-btn" data-tool="polygon" title="Polygon (P)">Polygon</button>
+        </div>
+      </div>
 
       <div class="sep"></div>
-      <button class="tool-btn" id="import-bg-btn" title="Import background image (blueprint/map)">
-        Import
-      </button>
-      <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
-      <button
-        class="tool-btn"
-        data-tool="calibrate"
-        title="Calibrate scale by clicking two known points"
-      >
-        Calibrate
-      </button>
+      <div class="toolbar-group">
+        <span class="toolbar-group-label">Canvas</span>
+        <div class="toolbar-group-btns">
+          <button
+            class="tool-btn"
+            id="import-bg-btn"
+            title="Import background image (blueprint/map)"
+          >
+            Add background
+          </button>
+          <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
+          <button
+            class="tool-btn"
+            data-tool="calibrate"
+            title="Calibrate scale by clicking two known points"
+          >
+            Set scale
+          </button>
+        </div>
+      </div>
 
       <div class="sep"></div>
       <label class="toggle-wrap" title="Toggle fill mode — next drop fills entire shape">
@@ -603,9 +633,17 @@
       </label>
 
       <div class="sep"></div>
-      <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
-      <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
-      <input type="file" id="load-file-input" accept=".json" style="display: none" />
+      <div class="toolbar-group">
+        <span class="toolbar-group-label">File</span>
+        <div class="toolbar-group-btns">
+          <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
+          <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
+          <input type="file" id="load-file-input" accept=".json" style="display: none" />
+          <button class="tool-btn" id="export-xls-btn" title="Export plant summary to Excel">
+            Export plant summary
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="workspace">
@@ -686,13 +724,6 @@
           <div id="summary-content">
             <div class="info-empty">No plants placed yet.</div>
           </div>
-          <button
-            id="export-xls-btn"
-            title="Export plant summary to Excel"
-            style="margin-top: 10px; width: 100%"
-          >
-            Export to Excel
-          </button>
         </div>
       </div>
     </div>

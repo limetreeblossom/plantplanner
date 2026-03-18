@@ -762,14 +762,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     deleteSelected();
     return;
   }
-  if (e.key === 's' || e.key === 'S') setTool('select');
   if (e.key === 'r' || e.key === 'R') setTool('rect');
   if (e.key === 'c' || e.key === 'C') setTool('circle');
   if (e.key === 'e' || e.key === 'E') setTool('ellipse');
   if (e.key === 'p' || e.key === 'P') setTool('polygon');
-  if (e.key === 'Escape' && currentTool === 'polygon') {
-    clearPolygon();
+  if (e.key === 'Escape' && currentTool !== 'select') {
     setTool('select');
+    (document.activeElement as HTMLElement)?.blur();
   }
 });
 
