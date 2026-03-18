@@ -409,6 +409,27 @@
         align-items: flex-start;
         justify-content: flex-start;
       }
+      #canvas-wrap {
+        display: inline-grid;
+        grid-template-columns: 20px auto;
+        grid-template-rows: 20px auto;
+        line-height: 0;
+      }
+      #ruler-corner {
+        background: #f0f0f0;
+        border-right: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+      }
+      #h-ruler {
+        display: block;
+        background: #f0f0f0;
+        border-bottom: 1px solid #ccc;
+      }
+      #v-ruler {
+        display: block;
+        background: #f0f0f0;
+        border-right: 1px solid #ccc;
+      }
 
       #canvas {
         background: #fff;
@@ -628,20 +649,25 @@
       </div>
 
       <div id="canvas-container">
-        <svg
-          id="canvas"
-          width="900"
-          height="600"
-          viewBox="0 0 900 600"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <g id="bg-layer"></g>
-          <g id="grid-layer"></g>
-          <g id="shapes-layer"></g>
-          <g id="flowers-layer"></g>
-          <g id="trees-layer"></g>
-          <g id="overlay-layer"></g>
-        </svg>
+        <div id="canvas-wrap">
+          <div id="ruler-corner"></div>
+          <canvas id="h-ruler" height="20"></canvas>
+          <canvas id="v-ruler" width="20"></canvas>
+          <svg
+            id="canvas"
+            width="900"
+            height="600"
+            viewBox="0 0 900 600"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g id="bg-layer"></g>
+            <g id="grid-layer"></g>
+            <g id="shapes-layer"></g>
+            <g id="flowers-layer"></g>
+            <g id="trees-layer"></g>
+            <g id="overlay-layer"></g>
+          </svg>
+        </div>
       </div>
 
       <div id="right-panel">

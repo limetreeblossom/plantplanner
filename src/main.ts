@@ -54,6 +54,8 @@ const shapesLayer = document.getElementById('shapes-layer') as unknown as SVGGEl
 const flowersLayer = document.getElementById('flowers-layer') as unknown as SVGGElement;
 const treesLayer = document.getElementById('trees-layer') as unknown as SVGGElement;
 const overlayLayer = document.getElementById('overlay-layer') as unknown as SVGGElement;
+const hRuler = document.getElementById('h-ruler') as HTMLCanvasElement;
+const vRuler = document.getElementById('v-ruler') as HTMLCanvasElement;
 const shapeTooltipEl = document.getElementById('shape-tooltip') as HTMLDivElement;
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
 const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
@@ -136,80 +138,69 @@ function drawGrid(scale = SCALE): void {
   const g = document.getElementById('grid-layer') as unknown as SVGGElement;
   g.innerHTML = '';
 
-  const major = scale; // 1 m
+  const major = scale; // 1 m in SVG units
   const minor = scale / 2; // 0.5 m
   const showMinor = scale >= 50;
+  const BIG = 100_000; // large enough to cover any pan/zoom
 
-  // Minor lines first (drawn underneath major lines)
+  // Build pattern(s) in a <defs> block
+  const defs = document.createElementNS(NS, 'defs');
+
+  function makeLine(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    stroke: string,
+    sw: number,
+  ): SVGLineElement {
+    const ln = document.createElementNS(NS, 'line') as SVGLineElement;
+    ln.setAttribute('x1', String(x1));
+    ln.setAttribute('y1', String(y1));
+    ln.setAttribute('x2', String(x2));
+    ln.setAttribute('y2', String(y2));
+    ln.setAttribute('stroke', stroke);
+    ln.setAttribute('stroke-width', String(sw));
+    return ln;
+  }
+
   if (showMinor) {
-    for (let i = 1; i * minor <= CANVAS_W; i++) {
-      const x = i * minor;
-      const ln = document.createElementNS(NS, 'line');
-      ln.setAttribute('x1', String(x));
-      ln.setAttribute('y1', '0');
-      ln.setAttribute('x2', String(x));
-      ln.setAttribute('y2', String(CANVAS_H));
-      ln.setAttribute('stroke', '#e8f0e4');
-      ln.setAttribute('stroke-width', '0.5');
-      g.appendChild(ln);
-    }
-    for (let i = 1; i * minor <= CANVAS_H; i++) {
-      const y = i * minor;
-      const ln = document.createElementNS(NS, 'line');
-      ln.setAttribute('x1', '0');
-      ln.setAttribute('y1', String(y));
-      ln.setAttribute('x2', String(CANVAS_W));
-      ln.setAttribute('y2', String(y));
-      ln.setAttribute('stroke', '#e8f0e4');
-      ln.setAttribute('stroke-width', '0.5');
-      g.appendChild(ln);
-    }
+    const mp = document.createElementNS(NS, 'pattern') as SVGPatternElement;
+    mp.setAttribute('id', 'grid-minor-pat');
+    mp.setAttribute('width', String(minor));
+    mp.setAttribute('height', String(minor));
+    mp.setAttribute('patternUnits', 'userSpaceOnUse');
+    mp.appendChild(makeLine(minor, 0, minor, minor, '#e8f0e4', 0.5));
+    mp.appendChild(makeLine(0, minor, minor, minor, '#e8f0e4', 0.5));
+    defs.appendChild(mp);
   }
 
-  // Major lines (1 m intervals) overdrawn on top
-  for (let i = 0; i * major <= CANVAS_W; i++) {
-    const x = i * major;
-    const ln = document.createElementNS(NS, 'line');
-    ln.setAttribute('x1', String(x));
-    ln.setAttribute('y1', '0');
-    ln.setAttribute('x2', String(x));
-    ln.setAttribute('y2', String(CANVAS_H));
-    ln.setAttribute('stroke', '#c8d8c0');
-    ln.setAttribute('stroke-width', '1');
-    g.appendChild(ln);
+  const Mp = document.createElementNS(NS, 'pattern') as SVGPatternElement;
+  Mp.setAttribute('id', 'grid-major-pat');
+  Mp.setAttribute('width', String(major));
+  Mp.setAttribute('height', String(major));
+  Mp.setAttribute('patternUnits', 'userSpaceOnUse');
+  if (showMinor) {
+    const minorRect = document.createElementNS(NS, 'rect') as SVGRectElement;
+    minorRect.setAttribute('width', String(major));
+    minorRect.setAttribute('height', String(major));
+    minorRect.setAttribute('fill', 'url(#grid-minor-pat)');
+    Mp.appendChild(minorRect);
   }
-  for (let i = 0; i * major <= CANVAS_H; i++) {
-    const y = i * major;
-    const ln = document.createElementNS(NS, 'line');
-    ln.setAttribute('x1', '0');
-    ln.setAttribute('y1', String(y));
-    ln.setAttribute('x2', String(CANVAS_W));
-    ln.setAttribute('y2', String(y));
-    ln.setAttribute('stroke', '#c8d8c0');
-    ln.setAttribute('stroke-width', '1');
-    g.appendChild(ln);
-  }
+  Mp.appendChild(makeLine(major, 0, major, major, '#c8d8c0', 1));
+  Mp.appendChild(makeLine(0, major, major, major, '#c8d8c0', 1));
+  defs.appendChild(Mp);
 
-  // Metre labels
-  for (let m = 1; m * scale <= CANVAS_W; m++) {
-    const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', String(Math.round(m * scale)));
-    txt.setAttribute('y', '11');
-    txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-size', '9');
-    txt.setAttribute('fill', '#aac0a0');
-    txt.textContent = m + 'm';
-    g.appendChild(txt);
-  }
-  for (let m = 1; m * scale <= CANVAS_H; m++) {
-    const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', '4');
-    txt.setAttribute('y', String(Math.round(m * scale) + 4));
-    txt.setAttribute('font-size', '9');
-    txt.setAttribute('fill', '#aac0a0');
-    txt.textContent = m + 'm';
-    g.appendChild(txt);
-  }
+  g.appendChild(defs);
+
+  // Single rect filled with the tiling pattern — covers all pan/zoom positions
+  const rect = document.createElementNS(NS, 'rect') as SVGRectElement;
+  rect.setAttribute('x', String(-BIG));
+  rect.setAttribute('y', String(-BIG));
+  rect.setAttribute('width', String(BIG * 2));
+  rect.setAttribute('height', String(BIG * 2));
+  rect.setAttribute('fill', 'url(#grid-major-pat)');
+  g.appendChild(rect);
 }
 
 // ── Floating dimension label (during draw) ─────────────────────────────────
@@ -652,6 +643,7 @@ function applyCalibration(): void {
     sessionScale = calcScale(calibPts[0].x, calibPts[0].y, calibPts[1].x, calibPts[1].y, realM);
     scaleInfo.textContent = `Scale: 1 m = ${Math.round(sessionScale)} px`;
     drawGrid(sessionScale);
+    drawRulers();
     for (const s of shapes) {
       for (const m of s.plantMarkers) {
         const ringR = (m.plant.spacing / 2) * sessionScale;
@@ -977,8 +969,85 @@ function renderSearchResults(plants: Plant[]): void {
 }
 
 // ── Zoom / pan helpers ──────────────────────────────────────────────────────
+function drawRulers(): void {
+  const svgW = svgEl.clientWidth;
+  const svgH = svgEl.clientHeight;
+  if (!svgW || !svgH) return;
+
+  // CSS pixels per metre on the rendered SVG
+  const pxPerM = (sessionScale / vbW) * svgW;
+
+  // Choose label interval based on zoom
+  let labelStep = 1;
+  if (pxPerM < 20) labelStep = 10;
+  else if (pxPerM < 40) labelStep = 5;
+  else if (pxPerM < 80) labelStep = 2;
+
+  const RULER_SIZE = 20;
+  const BG = '#f0f0f0';
+  const TICK = '#999';
+  const TEXT_COLOR = '#555';
+
+  function drawAxis(
+    canvas: HTMLCanvasElement,
+    length: number,
+    isHorizontal: boolean,
+    vbStart: number,
+    vbSpan: number,
+  ): void {
+    canvas.width = isHorizontal ? length : RULER_SIZE;
+    canvas.height = isHorizontal ? RULER_SIZE : length;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const firstM = Math.ceil(vbStart / sessionScale);
+    const lastM = Math.floor((vbStart + vbSpan) / sessionScale);
+
+    ctx.font = '9px system-ui,sans-serif';
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.strokeStyle = TICK;
+
+    for (let m = firstM; m <= lastM; m++) {
+      const pos = ((m * sessionScale - vbStart) / vbSpan) * length;
+      const major = m % labelStep === 0;
+      const tickLen = major ? 10 : 5;
+
+      ctx.lineWidth = major ? 1 : 0.5;
+      ctx.beginPath();
+      if (isHorizontal) {
+        ctx.moveTo(pos, RULER_SIZE - tickLen);
+        ctx.lineTo(pos, RULER_SIZE);
+      } else {
+        ctx.moveTo(RULER_SIZE - tickLen, pos);
+        ctx.lineTo(RULER_SIZE, pos);
+      }
+      ctx.stroke();
+
+      if (major) {
+        const label = m + 'm';
+        if (isHorizontal) {
+          ctx.textAlign = 'center';
+          ctx.fillText(label, pos, RULER_SIZE - tickLen - 2);
+        } else {
+          ctx.save();
+          ctx.translate(RULER_SIZE - tickLen - 2, pos);
+          ctx.rotate(-Math.PI / 2);
+          ctx.textAlign = 'center';
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  drawAxis(hRuler, svgW, true, vbX, vbW);
+  drawAxis(vRuler, svgH, false, vbY, vbH);
+}
+
 function applyViewBox(): void {
   svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+  drawRulers();
 }
 
 const ZOOM_FACTOR = 1.15;
@@ -1647,6 +1716,7 @@ plantSearchEl.addEventListener('input', () => {
 });
 
 drawGrid();
+drawRulers();
 setTool('select');
 
 window.addEventListener('beforeunload', (e) => {
