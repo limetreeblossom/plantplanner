@@ -16,6 +16,9 @@ import { buildChipEl } from './chips';
 import { buildExportRows } from './export';
 import { applyRingsToggle, applyGridToggle, applyBgToggle } from './toggles';
 import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
+import { buildSaveData, parseSaveData } from './saveload';
+import type { SavedShape, SaveData } from './saveload';
+import { getAllOverrides, restoreOverrides } from './plantStore';
 import {
   SCALE,
   CANVAS_W,
@@ -1459,6 +1462,204 @@ document.addEventListener('mouseup', () => {
 
   setTool('select');
   selectShape(d);
+});
+
+// ── Save / Load ─────────────────────────────────────────────────────────────
+
+function saveDesign(): void {
+  const bgImageData = bgImageEl
+    ? { dataUrl: bgImageEl.getAttribute('href') ?? '', x: bgX, y: bgY }
+    : null;
+  const data = buildSaveData(shapes, getAllOverrides(), sessionScale, bgImageData);
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'flowerbed.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearCanvas(): void {
+  setTool('select'); // resets polygon / calibration state and overlayLayer elements
+  shapesLayer.innerHTML = '';
+  markersLayer.innerHTML = '';
+  labelLayer.innerHTML = '';
+  if (bgImageEl) {
+    bgLayer.removeChild(bgImageEl);
+    bgImageEl = null;
+  }
+  bgX = 0;
+  bgY = 0;
+  shapes = [];
+  selectedData = null;
+  selectedMarker = null;
+  selectedMarkerShape = null;
+  draggingShape = null;
+  draggingMarker = null;
+  fillMode = false;
+  fillModeBtn.classList.remove('active');
+  updateInfoPanel(null);
+  sessionScale = SCALE;
+  scaleInfo.textContent = '';
+  drawGrid();
+  colorIndex = 0;
+  vbX = 0;
+  vbY = 0;
+  vbW = CANVAS_W;
+  vbH = CANVAS_H;
+  applyViewBox();
+}
+
+function restoreShapeFromSave(saved: SavedShape): ShapeData {
+  const { fill, stroke } = saved;
+  let el: SVGGeometryElement;
+  let d: ShapeData;
+
+  if (saved.type === 'rect') {
+    const r = document.createElementNS(NS, 'rect') as SVGRectElement;
+    r.setAttribute('x', String(saved.x));
+    r.setAttribute('y', String(saved.y));
+    r.setAttribute('width', String(saved.w));
+    r.setAttribute('height', String(saved.h));
+    el = r as unknown as SVGGeometryElement;
+    d = {
+      type: 'rect',
+      el,
+      labelEl: null,
+      plantMarkers: [],
+      x: saved.x,
+      y: saved.y,
+      w: saved.w,
+      h: saved.h,
+      fill,
+      stroke,
+    };
+  } else if (saved.type === 'circle') {
+    const c = document.createElementNS(NS, 'circle') as SVGCircleElement;
+    c.setAttribute('cx', String(saved.cx));
+    c.setAttribute('cy', String(saved.cy));
+    c.setAttribute('r', String(saved.r));
+    el = c as unknown as SVGGeometryElement;
+    d = {
+      type: 'circle',
+      el,
+      labelEl: null,
+      plantMarkers: [],
+      cx: saved.cx,
+      cy: saved.cy,
+      r: saved.r,
+      fill,
+      stroke,
+    };
+  } else if (saved.type === 'ellipse') {
+    const e = document.createElementNS(NS, 'ellipse') as SVGEllipseElement;
+    e.setAttribute('cx', String(saved.cx));
+    e.setAttribute('cy', String(saved.cy));
+    e.setAttribute('rx', String(saved.rx));
+    e.setAttribute('ry', String(saved.ry));
+    el = e as unknown as SVGGeometryElement;
+    d = {
+      type: 'ellipse',
+      el,
+      labelEl: null,
+      plantMarkers: [],
+      cx: saved.cx,
+      cy: saved.cy,
+      rx: saved.rx,
+      ry: saved.ry,
+      fill,
+      stroke,
+    };
+  } else {
+    const p = document.createElementNS(NS, 'polygon') as SVGPolygonElement;
+    p.setAttribute('points', saved.points.map((pt) => `${pt.x},${pt.y}`).join(' '));
+    el = p as unknown as SVGGeometryElement;
+    d = {
+      type: 'polygon',
+      el,
+      labelEl: null,
+      plantMarkers: [],
+      points: saved.points,
+      fill,
+      stroke,
+    };
+  }
+
+  el.setAttribute('fill', fill);
+  el.setAttribute('stroke', stroke);
+  el.setAttribute('stroke-width', DEF_SW);
+  (el as SVGElement & { dataset: DOMStringMap }).dataset['shape'] = '1';
+  el.style.cursor = 'pointer';
+  shapesLayer.appendChild(el);
+
+  d.labelEl = makeLabelEl();
+  for (const m of saved.markers) {
+    const markerEl = createMarkerEl(m.plant, m.x, m.y);
+    d.plantMarkers.push({ plant: m.plant, x: m.x, y: m.y, el: markerEl });
+  }
+  updateLabelEl(d);
+  return d;
+}
+
+function restoreDesign(data: SaveData): void {
+  sessionScale = data.sessionScale;
+  scaleInfo.textContent =
+    sessionScale !== SCALE ? `Scale: 1 m = ${Math.round(sessionScale)} px` : '';
+  drawGrid(sessionScale);
+
+  restoreOverrides(data.overrides ?? {});
+
+  if (data.bgImage) {
+    bgImageEl = document.createElementNS(NS, 'image') as SVGImageElement;
+    bgImageEl.setAttribute('href', data.bgImage.dataUrl);
+    bgX = data.bgImage.x;
+    bgY = data.bgImage.y;
+    bgImageEl.setAttribute('x', String(bgX));
+    bgImageEl.setAttribute('y', String(bgY));
+    bgImageEl.setAttribute('width', String(CANVAS_W));
+    bgImageEl.setAttribute('height', String(CANVAS_H));
+    bgImageEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    bgLayer.appendChild(bgImageEl);
+  }
+
+  for (const saved of data.shapes) {
+    shapes.push(restoreShapeFromSave(saved));
+  }
+
+  updateSummary();
+}
+
+const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+saveBtn.addEventListener('click', saveDesign);
+
+const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
+const loadFileInput = document.getElementById('load-file-input') as HTMLInputElement;
+
+loadBtn.addEventListener('click', () => loadFileInput.click());
+loadFileInput.addEventListener('change', () => {
+  const file = loadFileInput.files?.[0];
+  if (!file) return;
+  if (shapes.length > 0 || bgImageEl) {
+    if (!confirm('Loading a file will replace the current design. Continue?')) {
+      loadFileInput.value = '';
+      return;
+    }
+  }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = parseSaveData(ev.target!.result as string);
+      clearCanvas();
+      restoreDesign(data);
+      statusMsg.textContent = 'Design loaded.';
+    } catch (e) {
+      alert(`Failed to load: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+  };
+  reader.readAsText(file);
+  loadFileInput.value = '';
 });
 
 // ── XLS export ─────────────────────────────────────────────────────────────

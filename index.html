@@ -1,548 +1,724 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Flowerbed Planner</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flowerbed Planner</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background: #f4f6f0;
-      overflow: hidden;
-    }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: #f4f6f0;
+        overflow: hidden;
+      }
 
-    /* ── Toolbar ── */
-    #toolbar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-      flex-shrink: 0;
-    }
+      /* ── Toolbar ── */
+      #toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+        flex-shrink: 0;
+      }
 
-    #app-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #2e6b18;
-      margin-right: 14px;
-      white-space: nowrap;
-    }
+      #app-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #2e6b18;
+        margin-right: 14px;
+        white-space: nowrap;
+      }
 
-    .sep { width: 1px; height: 24px; background: #ddd; margin: 0 4px; }
+      .sep {
+        width: 1px;
+        height: 24px;
+        background: #ddd;
+        margin: 0 4px;
+      }
 
-    .tool-btn {
-      padding: 5px 13px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background: #f7f7f7;
-      cursor: pointer;
-      font-size: 0.82rem;
-      transition: background 0.1s, border-color 0.1s;
-      white-space: nowrap;
-    }
-    .tool-btn:hover { background: #e8f5e9; border-color: #66bb6a; }
-    .tool-btn.active {
-      background: #43a047;
-      color: #fff;
-      border-color: #2e7d32;
-    }
+      .tool-btn {
+        padding: 5px 13px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background: #f7f7f7;
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition:
+          background 0.1s,
+          border-color 0.1s;
+        white-space: nowrap;
+      }
+      .tool-btn:hover {
+        background: #e8f5e9;
+        border-color: #66bb6a;
+      }
+      .tool-btn.active {
+        background: #43a047;
+        color: #fff;
+        border-color: #2e7d32;
+      }
 
-    #delete-btn {
-      margin-left: auto;
-      padding: 5px 13px;
-      border: 1px solid #e57373;
-      border-radius: 5px;
-      background: #fff;
-      color: #c62828;
-      cursor: pointer;
-      font-size: 0.82rem;
-      transition: background 0.1s;
-    }
-    #delete-btn:hover:not(:disabled) { background: #ffebee; }
-    #delete-btn:disabled { opacity: 0.35; cursor: default; }
+      #delete-btn {
+        margin-left: auto;
+        padding: 5px 13px;
+        border: 1px solid #e57373;
+        border-radius: 5px;
+        background: #fff;
+        color: #c62828;
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition: background 0.1s;
+      }
+      #delete-btn:hover:not(:disabled) {
+        background: #ffebee;
+      }
+      #delete-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
 
-    /* Hide spacing rings when toggled off */
-    body.hide-rings .spacing-ring { display: none; }
-    body.hide-grid  #grid-layer   { display: none; }
-    body.hide-bg    #bg-layer     { display: none; }
+      /* Hide spacing rings when toggled off */
+      body.hide-rings .spacing-ring {
+        display: none;
+      }
+      body.hide-grid #grid-layer {
+        display: none;
+      }
+      body.hide-bg #bg-layer {
+        display: none;
+      }
 
-    /* ── CC toggle switch ── */
-    .toggle-wrap {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.82rem;
-      color: #555;
-      cursor: pointer;
-      user-select: none;
-      white-space: nowrap;
-    }
-    .toggle-wrap input { display: none; }
+      /* ── CC toggle switch ── */
+      .toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.82rem;
+        color: #555;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      .toggle-wrap input {
+        display: none;
+      }
 
-    .toggle-track {
-      width: 30px;
-      height: 17px;
-      background: #ccc;
-      border-radius: 9px;
-      position: relative;
-      flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    .toggle-thumb {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 13px;
-      height: 13px;
-      background: #fff;
-      border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-      transition: left 0.2s;
-    }
-    .toggle-wrap input:checked + .toggle-track { background: #43a047; }
-    .toggle-wrap input:checked + .toggle-track .toggle-thumb { left: 15px; }
+      .toggle-track {
+        width: 30px;
+        height: 17px;
+        background: #ccc;
+        border-radius: 9px;
+        position: relative;
+        flex-shrink: 0;
+        transition: background 0.2s;
+      }
+      .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 13px;
+        height: 13px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        transition: left 0.2s;
+      }
+      .toggle-wrap input:checked + .toggle-track {
+        background: #43a047;
+      }
+      .toggle-wrap input:checked + .toggle-track .toggle-thumb {
+        left: 15px;
+      }
 
-    /* ── Workspace ── */
-    #workspace {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
+      /* ── Workspace ── */
+      #workspace {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
 
-    /* ── Left panel ── */
-    #left-panel {
-      width: 160px;
-      flex-shrink: 0;
-      background: #fff;
-      border-right: 1px solid #ddd;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+      /* ── Left panel ── */
+      #left-panel {
+        width: 160px;
+        flex-shrink: 0;
+        background: #fff;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-    #left-panel h2 {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #999;
-      padding: 14px 14px 8px;
-      flex-shrink: 0;
-    }
+      #left-panel h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #999;
+        padding: 14px 14px 8px;
+        flex-shrink: 0;
+      }
 
-    #plant-search {
-      margin: 0 10px 6px;
-      padding: 5px 8px;
-      font-size: 0.8rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      outline: none;
-      flex-shrink: 0;
-    }
-    #plant-search:focus { border-color: #88c988; }
+      #plant-search {
+        margin: 0 10px 6px;
+        padding: 5px 8px;
+        font-size: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        outline: none;
+        flex-shrink: 0;
+      }
+      #plant-search:focus {
+        border-color: #88c988;
+      }
 
-    #search-results {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0 10px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    #search-results:empty::after {
-      content: 'Search to find plants';
-      font-size: 0.75rem;
-      color: #ccc;
-      font-style: italic;
-      padding: 6px 4px;
-    }
+      #search-results {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 10px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      #search-results:empty::after {
+        content: 'Search to find plants';
+        font-size: 0.75rem;
+        color: #ccc;
+        font-style: italic;
+        padding: 6px 4px;
+      }
 
-    .plant-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 6px 9px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: #fafafa;
-      cursor: grab;
-      font-size: 0.82rem;
-      user-select: none;
-      transition: background 0.1s, border-color 0.1s;
-    }
-    .plant-chip:hover { background: #f0f7f0; border-color: #88c988; }
-    .plant-chip.dragging { opacity: 0.4; cursor: grabbing; }
+      .plant-chip {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 9px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+        cursor: grab;
+        font-size: 0.82rem;
+        user-select: none;
+        transition:
+          background 0.1s,
+          border-color 0.1s;
+      }
+      .plant-chip:hover {
+        background: #f0f7f0;
+        border-color: #88c988;
+      }
+      .plant-chip.dragging {
+        opacity: 0.4;
+        cursor: grabbing;
+      }
 
-    .chip-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chip-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-    .chip-edit-btn {
-      flex-shrink: 0;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #bbb;
-      font-size: 0.9rem;
-      padding: 0 2px;
-      line-height: 1;
-      transition: color 0.1s;
-    }
-    .chip-edit-btn:hover { color: #43a047; }
+      .chip-edit-btn {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #bbb;
+        font-size: 0.9rem;
+        padding: 0 2px;
+        line-height: 1;
+        transition: color 0.1s;
+      }
+      .chip-edit-btn:hover {
+        color: #43a047;
+      }
 
+      #plant-img-tooltip {
+        position: fixed;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 8px;
+        pointer-events: none;
+        display: none;
+        width: 200px;
+      }
+      #plant-img-tooltip img {
+        display: block;
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 7px;
+      }
+      .plant-tip-sci {
+        font-style: italic;
+        font-size: 0.78rem;
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .plant-tip-name {
+        font-size: 0.76rem;
+        color: #444;
+        margin-bottom: 5px;
+      }
+      .plant-tip-meta {
+        font-size: 0.72rem;
+        color: #888;
+        line-height: 1.55;
+      }
 
-    #plant-img-tooltip {
-      position: fixed;
-      z-index: 9999;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 8px;
-      pointer-events: none;
-      display: none;
-      width: 200px;
-    }
-    #plant-img-tooltip img {
-      display: block;
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 4px;
-      margin-bottom: 7px;
-    }
-    .plant-tip-sci  { font-style: italic; font-size: 0.78rem; color: #333; font-weight: 600; margin-bottom: 2px; }
-    .plant-tip-name { font-size: 0.76rem; color: #444; margin-bottom: 5px; }
-    .plant-tip-meta { font-size: 0.72rem; color: #888; line-height: 1.55; }
+      .panel-divider {
+        height: 1px;
+        background: #eee;
+        margin: 6px 10px 0;
+        flex-shrink: 0;
+      }
 
-    .panel-divider {
-      height: 1px;
-      background: #eee;
-      margin: 6px 10px 0;
-      flex-shrink: 0;
-    }
+      .panel-section-label {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #bbb;
+        padding: 8px 14px 4px;
+        flex-shrink: 0;
+      }
 
-    .panel-section-label {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #bbb;
-      padding: 8px 14px 4px;
-      flex-shrink: 0;
-    }
+      #used-plants-section {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+      }
 
-    #used-plants-section {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-    }
+      #used-plants {
+        padding: 0 10px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-    #used-plants {
-      padding: 0 10px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+      /* ── Plant edit popover ── */
+      #plant-edit-popover {
+        position: fixed;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 7px;
+        padding: 10px 12px;
+        z-index: 200;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+        font-size: 0.82rem;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 160px;
+      }
+      #plant-edit-popover label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        color: #555;
+      }
+      #plant-edit-popover input[type='number'] {
+        width: 70px;
+        padding: 3px 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.82rem;
+      }
+      #plant-edit-popover input[type='color'] {
+        width: 36px;
+        height: 24px;
+        padding: 1px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .edit-popover-btns {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        margin-top: 2px;
+      }
+      .edit-popover-btns button {
+        padding: 3px 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+      #edit-save-btn {
+        background: #43a047;
+        color: #fff;
+        border-color: #2e7d32;
+      }
+      #edit-save-btn:hover {
+        background: #388e3c;
+      }
+      #edit-cancel-btn {
+        background: #f5f5f5;
+      }
+      #edit-cancel-btn:hover {
+        background: #eeeeee;
+      }
 
-    /* ── Plant edit popover ── */
-    #plant-edit-popover {
-      position: fixed;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 7px;
-      padding: 10px 12px;
-      z-index: 200;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.18);
-      font-size: 0.82rem;
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 160px;
-    }
-    #plant-edit-popover label { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #555; }
-    #plant-edit-popover input[type=number] { width: 70px; padding: 3px 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.82rem; }
-    #plant-edit-popover input[type=color]  { width: 36px; height: 24px; padding: 1px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-    .edit-popover-btns { display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px; }
-    .edit-popover-btns button { padding: 3px 10px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; font-size: 0.78rem; }
-    #edit-save-btn  { background: #43a047; color: #fff; border-color: #2e7d32; }
-    #edit-save-btn:hover { background: #388e3c; }
-    #edit-cancel-btn { background: #f5f5f5; }
-    #edit-cancel-btn:hover { background: #eeeeee; }
+      /* ── Canvas ── */
+      #canvas-container {
+        flex: 1;
+        overflow: auto;
+        padding: 20px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+      }
 
-    /* ── Canvas ── */
-    #canvas-container {
-      flex: 1;
-      overflow: auto;
-      padding: 20px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-    }
+      #canvas {
+        background: #fff;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        display: block;
+        flex-shrink: 0;
+        user-select: none;
+      }
+      #canvas.tool-select {
+        cursor: default;
+      }
+      #canvas.tool-draw {
+        cursor: crosshair;
+      }
 
-    #canvas {
-      background: #fff;
-      border: 1px solid #ccc;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      display: block;
-      flex-shrink: 0;
-      user-select: none;
-    }
-    #canvas.tool-select { cursor: default; }
-    #canvas.tool-draw   { cursor: crosshair; }
+      /* ── Right panel ── */
+      #right-panel {
+        width: 230px;
+        flex-shrink: 0;
+        background: #fff;
+        border-left: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-    /* ── Right panel ── */
-    #right-panel {
-      width: 230px;
-      flex-shrink: 0;
-      background: #fff;
-      border-left: 1px solid #ddd;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+      .panel-section {
+        padding: 14px 14px 10px;
+        border-bottom: 1px solid #eee;
+        overflow-y: auto;
+        font-size: 0.83rem;
+      }
+      .panel-section:last-child {
+        border-bottom: none;
+        flex: 1;
+      }
 
-    .panel-section {
-      padding: 14px 14px 10px;
-      border-bottom: 1px solid #eee;
-      overflow-y: auto;
-      font-size: 0.83rem;
-    }
-    .panel-section:last-child { border-bottom: none; flex: 1; }
+      .panel-section h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #999;
+        margin-bottom: 10px;
+      }
 
-    .panel-section h2 {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #999;
-      margin-bottom: 10px;
-    }
+      .info-empty {
+        color: #bbb;
+        font-style: italic;
+      }
 
-    .info-empty { color: #bbb; font-style: italic; }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+      }
+      .info-label {
+        color: #888;
+      }
+      .info-value {
+        font-weight: 600;
+        color: #333;
+      }
 
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 6px;
-    }
-    .info-label { color: #888; }
-    .info-value { font-weight: 600; color: #333; }
+      .info-divider {
+        border: none;
+        border-top: 1px solid #eee;
+        margin: 9px 0;
+      }
 
-    .info-divider { border: none; border-top: 1px solid #eee; margin: 9px 0; }
+      .info-area {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2e6b18;
+        margin-bottom: 8px;
+      }
 
-    .info-area {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #2e6b18;
-      margin-bottom: 8px;
-    }
+      /* ── Placed plant count ── */
+      .plant-count-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f1f8e9;
+        border: 1px solid #c5e1a5;
+        border-radius: 4px;
+        padding: 6px 8px;
+      }
+      .plant-count-label {
+        font-size: 0.78rem;
+        color: #558b2f;
+      }
+      .plant-count-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2e6b18;
+      }
 
-    /* ── Placed plant count ── */
-    .plant-count-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f1f8e9;
-      border: 1px solid #c5e1a5;
-      border-radius: 4px;
-      padding: 6px 8px;
-    }
-    .plant-count-label { font-size: 0.78rem; color: #558b2f; }
-    .plant-count-value {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #2e6b18;
-    }
+      /* ── Plant summary ── */
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+        font-size: 0.83rem;
+      }
+      .summary-name {
+        color: #444;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .summary-swatch {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        flex-shrink: 0;
+      }
+      .summary-count {
+        font-weight: 600;
+        color: #333;
+        background: #f0f0f0;
+        border-radius: 10px;
+        padding: 0 7px;
+        font-size: 0.78rem;
+      }
+      .summary-total {
+        font-weight: 700;
+        color: #2e6b18;
+        font-size: 0.88rem;
+      }
+      .summary-total .summary-count {
+        background: #c8e6c9;
+        color: #1b5e20;
+      }
 
-    /* ── Plant summary ── */
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 5px;
-      font-size: 0.83rem;
-    }
-    .summary-name {
-      color: #444;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .summary-swatch {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.12);
-      flex-shrink: 0;
-    }
-    .summary-count {
-      font-weight: 600;
-      color: #333;
-      background: #f0f0f0;
-      border-radius: 10px;
-      padding: 0 7px;
-      font-size: 0.78rem;
-    }
-    .summary-total {
-      font-weight: 700;
-      color: #2e6b18;
-      font-size: 0.88rem;
-    }
-    .summary-total .summary-count {
-      background: #c8e6c9;
-      color: #1b5e20;
-    }
+      /* ── Hint ── */
+      .info-hint {
+        font-size: 0.72rem;
+        color: #ccc;
+        line-height: 1.6;
+      }
 
-    /* ── Hint ── */
-    .info-hint {
-      font-size: 0.72rem;
-      color: #ccc;
-      line-height: 1.6;
-    }
+      /* ── Status bar ── */
+      #status-bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 4px 14px;
+        background: #eef2ea;
+        border-top: 1px solid #d8e0d2;
+        font-size: 0.75rem;
+        color: #6a7a62;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <span id="app-title">Flowerbed Planner</span>
 
-    /* ── Status bar ── */
-    #status-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 4px 14px;
-      background: #eef2ea;
-      border-top: 1px solid #d8e0d2;
-      font-size: 0.75rem;
-      color: #6a7a62;
-      flex-shrink: 0;
-    }
-  </style>
-</head>
-<body>
+      <button class="tool-btn active" data-tool="select" title="Select (S)">Select</button>
+      <div class="sep"></div>
+      <button class="tool-btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
+      <button class="tool-btn" data-tool="circle" title="Circle (C)">Circle</button>
+      <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">Ellipse</button>
+      <button class="tool-btn" data-tool="polygon" title="Polygon (P)">Polygon</button>
 
-<div id="toolbar">
-  <span id="app-title">Flowerbed Planner</span>
+      <div class="sep"></div>
+      <button class="tool-btn" id="import-bg-btn" title="Import background image (blueprint/map)">
+        Import
+      </button>
+      <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
+      <button
+        class="tool-btn"
+        data-tool="calibrate"
+        title="Calibrate scale by clicking two known points"
+      >
+        Calibrate
+      </button>
 
-  <button class="tool-btn active" data-tool="select" title="Select (S)">Select</button>
-  <div class="sep"></div>
-  <button class="tool-btn" data-tool="rect"    title="Rectangle (R)">Rectangle</button>
-  <button class="tool-btn" data-tool="circle"  title="Circle (C)">Circle</button>
-  <button class="tool-btn" data-tool="ellipse"  title="Ellipse (E)">Ellipse</button>
-  <button class="tool-btn" data-tool="polygon" title="Polygon (P)">Polygon</button>
+      <div class="sep"></div>
+      <label class="toggle-wrap" title="Show/hide CC spacing rings">
+        <input type="checkbox" id="rings-toggle" checked />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>CC</span>
+      </label>
+      <label class="toggle-wrap" title="Show/hide grid">
+        <input type="checkbox" id="grid-toggle" checked />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>Grid</span>
+      </label>
+      <label class="toggle-wrap" title="Show/hide background image">
+        <input type="checkbox" id="bg-toggle" checked />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>BG</span>
+      </label>
 
-  <div class="sep"></div>
-  <button class="tool-btn" id="import-bg-btn" title="Import background image (blueprint/map)">Import</button>
-  <input type="file" id="bg-file-input" accept="image/*" style="display:none">
-  <button class="tool-btn" data-tool="calibrate" title="Calibrate scale by clicking two known points">Calibrate</button>
+      <div class="sep"></div>
+      <button
+        class="tool-btn"
+        id="fill-mode-btn"
+        title="Toggle fill mode — next drop fills entire shape"
+      >
+        Fill mode
+      </button>
 
-  <div class="sep"></div>
-  <label class="toggle-wrap" title="Show/hide CC spacing rings">
-    <input type="checkbox" id="rings-toggle" checked>
-    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-    <span>CC</span>
-  </label>
-  <label class="toggle-wrap" title="Show/hide grid">
-    <input type="checkbox" id="grid-toggle" checked>
-    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-    <span>Grid</span>
-  </label>
-  <label class="toggle-wrap" title="Show/hide background image">
-    <input type="checkbox" id="bg-toggle" checked>
-    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-    <span>BG</span>
-  </label>
+      <div class="sep"></div>
+      <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
+      <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
+      <input type="file" id="load-file-input" accept=".json" style="display: none" />
 
-  <div class="sep"></div>
-  <button class="tool-btn" id="fill-mode-btn" title="Toggle fill mode — next drop fills entire shape">Fill mode</button>
-
-  <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
-</div>
-
-<div id="workspace">
-
-  <div id="left-panel">
-    <h2>Plants</h2>
-    <input type="search" id="plant-search" placeholder="Scientific name…" autocomplete="off" spellcheck="false">
-    <div id="search-results"></div>
-    <div id="used-plants-section" style="display:none">
-      <div class="panel-divider"></div>
-      <div class="panel-section-label">In design</div>
-      <div id="used-plants"></div>
+      <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
     </div>
-  </div>
 
-  <div id="canvas-container">
-    <svg id="canvas" width="900" height="600" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-      <g id="bg-layer"></g>
-      <g id="grid-layer"></g>
-      <g id="shapes-layer"></g>
-      <g id="markers-layer"></g>
-      <g id="label-layer"></g>
-      <g id="overlay-layer"></g>
-    </svg>
-  </div>
-
-  <div id="right-panel">
-
-    <!-- Shape info -->
-    <div class="panel-section" id="shape-section">
-      <h2>Shape Info</h2>
-      <div id="info-content">
-        <div class="info-empty">No shape selected.</div>
+    <div id="workspace">
+      <div id="left-panel">
+        <h2>Plants</h2>
+        <input
+          type="search"
+          id="plant-search"
+          placeholder="Scientific name…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div id="search-results"></div>
+        <div id="used-plants-section" style="display: none">
+          <div class="panel-divider"></div>
+          <div class="panel-section-label">In design</div>
+          <div id="used-plants"></div>
+        </div>
       </div>
-      <div class="info-hint" style="margin-top:10px;">
-        <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br>
-        <b>E</b> ellipse &nbsp; <b>P</b> polygon &nbsp; <b>Del</b> delete<br>
-        <b>Esc</b> cancel polygon<br>
-        Enable <b>Fill mode</b> then drop to fill shape<br>
-        <b>Scroll</b> zoom &nbsp; <b>Space+drag</b> or <b>middle-drag</b> pan
+
+      <div id="canvas-container">
+        <svg
+          id="canvas"
+          width="900"
+          height="600"
+          viewBox="0 0 900 600"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g id="bg-layer"></g>
+          <g id="grid-layer"></g>
+          <g id="shapes-layer"></g>
+          <g id="markers-layer"></g>
+          <g id="label-layer"></g>
+          <g id="overlay-layer"></g>
+        </svg>
+      </div>
+
+      <div id="right-panel">
+        <!-- Shape info -->
+        <div class="panel-section" id="shape-section">
+          <h2>Shape Info</h2>
+          <div id="info-content">
+            <div class="info-empty">No shape selected.</div>
+          </div>
+          <div class="info-hint" style="margin-top: 10px">
+            <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br />
+            <b>E</b> ellipse &nbsp; <b>P</b> polygon &nbsp; <b>Del</b> delete<br />
+            <b>Esc</b> cancel polygon<br />
+            Enable <b>Fill mode</b> then drop to fill shape<br />
+            <b>Scroll</b> zoom &nbsp; <b>Space+drag</b> or <b>middle-drag</b> pan
+          </div>
+        </div>
+
+        <!-- Running plant totals -->
+        <div class="panel-section" id="summary-section">
+          <h2>Plant Summary</h2>
+          <div id="summary-content">
+            <div class="info-empty">No plants placed yet.</div>
+          </div>
+          <button
+            id="export-xls-btn"
+            title="Export plant summary to Excel"
+            style="margin-top: 10px; width: 100%"
+          >
+            Export to Excel
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Running plant totals -->
-    <div class="panel-section" id="summary-section">
-      <h2>Plant Summary</h2>
-      <div id="summary-content">
-        <div class="info-empty">No plants placed yet.</div>
+    <div id="plant-img-tooltip">
+      <img id="plant-tip-img" src="" alt="" />
+      <div class="plant-tip-sci" id="plant-tip-sci"></div>
+      <div class="plant-tip-name" id="plant-tip-name"></div>
+      <div class="plant-tip-meta" id="plant-tip-meta"></div>
+    </div>
+    <div id="plant-edit-popover">
+      <label
+        >Spacing (m) <input type="number" id="edit-spacing" min="0.10" max="3.0" step="0.01"
+      /></label>
+      <label>Color <input type="color" id="edit-color" /></label>
+      <div class="edit-popover-btns">
+        <button id="edit-cancel-btn">Cancel</button>
+        <button id="edit-save-btn">Save</button>
       </div>
-      <button id="export-xls-btn" title="Export plant summary to Excel" style="margin-top:10px;width:100%;">Export to Excel</button>
     </div>
 
-  </div>
-</div>
+    <div
+      id="calib-overlay"
+      style="
+        display: none;
+        position: fixed;
+        background: #fff;
+        border: 1px solid #999;
+        border-radius: 6px;
+        padding: 8px 12px;
+        z-index: 100;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      "
+    >
+      <label style="font-size: 13px"
+        >Distance (m):
+        <input id="calib-input" type="number" min="0.01" step="0.01" style="width: 70px" />
+      </label>
+      <button id="calib-ok">OK</button>
+      <button id="calib-cancel">Cancel</button>
+    </div>
 
-<div id="plant-img-tooltip">
-  <img id="plant-tip-img" src="" alt="">
-  <div class="plant-tip-sci"  id="plant-tip-sci"></div>
-  <div class="plant-tip-name" id="plant-tip-name"></div>
-  <div class="plant-tip-meta" id="plant-tip-meta"></div>
-</div>
-<div id="plant-edit-popover">
-  <label>Spacing (m) <input type="number" id="edit-spacing" min="0.10" max="3.0" step="0.01"></label>
-  <label>Color <input type="color" id="edit-color"></label>
-  <div class="edit-popover-btns">
-    <button id="edit-cancel-btn">Cancel</button>
-    <button id="edit-save-btn">Save</button>
-  </div>
-</div>
+    <div id="status-bar">
+      <span id="scale-info">Scale: 1 m = 100 px</span>
+      <span>|</span>
+      <span>Canvas: 9 m &times; 6 m</span>
+      <span id="status-msg"></span>
+    </div>
 
-<div id="calib-overlay" style="display:none; position:fixed; background:#fff; border:1px solid #999;
-     border-radius:6px; padding:8px 12px; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
-  <label style="font-size:13px;">Distance (m):
-    <input id="calib-input" type="number" min="0.01" step="0.01" style="width:70px;">
-  </label>
-  <button id="calib-ok">OK</button>
-  <button id="calib-cancel">Cancel</button>
-</div>
-
-<div id="status-bar">
-  <span id="scale-info">Scale: 1 m = 100 px</span>
-  <span>|</span>
-  <span>Canvas: 9 m &times; 6 m</span>
-  <span id="status-msg"></span>
-</div>
-
-<script type="module" src="/src/main.ts"></script>
-</body>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

@@ -6,7 +6,7 @@ const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
 
 // Buttons with class "tool-btn" but intentionally no data-tool attribute.
 // These have their own dedicated click handlers and must NOT trigger setTool().
-const KNOWN_NON_TOOL_BTNS = new Set(['fill-mode-btn', 'import-bg-btn']);
+const KNOWN_NON_TOOL_BTNS = new Set(['fill-mode-btn', 'import-bg-btn', 'save-btn', 'load-btn']);
 
 describe('index.html tool-btn contract', () => {
   it('every .tool-btn element has data-tool OR is in the known non-tool allowlist', () => {
@@ -16,8 +16,8 @@ describe('index.html tool-btn contract', () => {
 
     for (const match of html.matchAll(btnRe)) {
       const attrs = match[1];
-      if (!/\btool-btn\b/.test(attrs)) continue;           // not a .tool-btn
-      if (/\bdata-tool\s*=/.test(attrs)) continue;          // has data-tool ✓
+      if (!/\btool-btn\b/.test(attrs)) continue; // not a .tool-btn
+      if (/\bdata-tool\s*=/.test(attrs)) continue; // has data-tool ✓
 
       // No data-tool — must be in the allowlist
       const idMatch = attrs.match(/\bid\s*=\s*["']([^"']+)["']/);

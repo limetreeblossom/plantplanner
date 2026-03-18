@@ -27,7 +27,7 @@ let overrides = new Map<string, PlantOverride>();
 const subscribers: Array<() => void> = [];
 
 function notify(): void {
-  subscribers.forEach(fn => fn());
+  subscribers.forEach((fn) => fn());
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -60,6 +60,17 @@ export function deleteOverride(slug: string): boolean {
 /** Registers a callback to run whenever the store changes. */
 export function subscribe(fn: () => void): void {
   subscribers.push(fn);
+}
+
+/** Returns all current overrides as a plain object (for serialisation). */
+export function getAllOverrides(): Record<string, PlantOverride> {
+  return Object.fromEntries(overrides);
+}
+
+/** Replaces the entire override store (for deserialisation). Notifies subscribers. */
+export function restoreOverrides(data: Record<string, PlantOverride>): void {
+  overrides = new Map(Object.entries(data));
+  notify();
 }
 
 /** Resets store to empty state. For tests only. */
