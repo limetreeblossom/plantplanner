@@ -19,8 +19,23 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 ### Module structure
 - `src/types.ts` — shared TypeScript interfaces (`Plant`, `PlantMarker`, `ShapeData` discriminated union, `LabelEl`)
 - `src/plants.ts` — `PLANTS` database, typed as `Plant[]`
-- `src/geometry.ts` — pure geometry: `calcArea`, `shapeCentroid`, `pointInShape` family, `pxToM`, `fmt`, constants
-- `src/main.ts` — all DOM, SVG rendering, and event handling; imports from the modules above
+- `src/geometry.ts` — pure geometry: `calcArea`, `shapeCentroid`, `pointInShape` family, `pxToM`, `fmt`, `computeFillPositions`, constants
+- `src/markers.ts` — SVG marker construction (`buildMarkerEl`), icon builders, selection helpers, `applyOverrideToEl`
+- `src/chips.ts` — sidebar chip construction (`buildChipEl`, `makeChipIcon`)
+- `src/summary.ts` — `aggregatePlantCounts`, `summaryDisplayName`
+- `src/tooltip.ts` — `applyTooltipContent`, `clearTooltipHandlers`
+- `src/export.ts` — `buildExportRows` (XLS row builder)
+- `src/toggles.ts` — `applyRingsToggle`, `applyGridToggle`, `applyBgToggle`
+- `src/main.ts` — DOM wiring, SVG rendering, event handling; imports from all modules above
+
+### Testing strategy
+- **Vitest** is the test runner for all automated tests
+- **Node environment** (default) for pure-logic modules: `geometry.ts`, `search.ts`, `summary.ts`, `export.ts`, `plantStore.ts`
+- **happy-dom** (per-file `// @vitest-environment happy-dom` docblock) for modules that build DOM/SVG elements: `markers.ts`, `chips.ts`, `tooltip.ts`, `toggles.ts`
+- **Playwright** deferred — end-to-end tests (drag-and-drop, canvas interaction, file import) are a planned addition but not yet implemented
+- `main.ts` is not imported by any test — its module-level DOM queries make it untestable. Pure logic is extracted to separate modules to keep `main.ts` thin
+- **ESLint** (flat config, `typescript-eslint` + `eslint-config-prettier`) + **Prettier** run via lint-staged on every staged file pre-commit
+- **`tsc --noEmit`** runs as part of the pre-commit hook (after lint-staged, before tests)
 
 ### Data model
 - Each design will be saved as a single JSON file (Phase 4): shapes, placed plant markers, and the plant database
@@ -126,6 +141,27 @@ Completed: refactored pure logic into `src/types.ts`, `src/plants.ts`, `src/geom
 
 ---
 
+### Phase 5b — Code Quality & Test Coverage ✅
+**Approach: extract → test → enforce**
+
+- ESLint flat config (`typescript-eslint` + `eslint-config-prettier`) enforcing strict TS-aware rules
+- Prettier for consistent formatting
+- Husky v9 + lint-staged pre-commit hook: lint + format staged files, `tsc --noEmit`, full test suite
+- Extracted pure/side-effect-free functions out of `main.ts` into testable modules:
+  - `src/markers.ts` — marker element builder, icon builders, selection helpers, override apply
+  - `src/chips.ts` — sidebar chip builder
+  - `src/summary.ts` — plant count aggregation and display name
+  - `src/tooltip.ts` — tooltip content application and handler cleanup
+  - `src/export.ts` — XLS row builder
+  - `src/toggles.ts` — visibility toggle functions
+  - `src/geometry.ts` — extended with `computeFillPositions`
+- 157 tests across 13 test files, all passing (node + happy-dom environments)
+- Fixed 10 pre-existing TypeScript errors in `main.ts`; added `DOM.Iterable` to tsconfig lib
+
+**Done when:** Pre-commit hook enforces lint + types + tests; 157 tests passing
+
+---
+
 ### Phase 6 — Save / Load / Export
 **Approach: TDD**
 
@@ -168,7 +204,7 @@ _Deferred — revisit after Phase 7 is complete._
 | Output | On-screen list + XLS export + PDF export (Phase 5) |
 | Devices | Desktop with mouse |
 | Framework | Vite (dev/build), Vitest (tests), TypeScript |
-| Testing | None for Phases 1–2; TDD from Phase 3 onwards |
+| Testing | Vitest (node + happy-dom); 157 tests; Playwright deferred for E2E |
 | Multi-user | Not in scope |
 
 ---
@@ -184,6 +220,7 @@ _Deferred — revisit after Phase 7 is complete._
 | 4a — Trefle data pipeline & search | ✅ Complete |
 | 4b — Per-plant overrides UI | ✅ Complete |
 | 5 — Zoom & Pan | ✅ Complete |
+| 5b — Code Quality & Test Coverage | ✅ Complete |
 | 6 — Save / Load / Export | ⬜ Not started |
 | 7 — Polish & UX | ⬜ Not started |
 | 8 — Templates (deferred) | ⏸ Deferred |
@@ -204,3 +241,4 @@ _Update this section as phases complete or decisions change._
 - **2026-03-13** — Phase 4b complete. Removed hardcoded favourites list. Added per-plant override store (`src/plantStore.ts`: get/set/delete per Trefle slug with validation). Edit popover (✎ button on search chips) lets user override spacing and colour; saving updates chip swatch and all placed markers immediately. Fixed fill-mode markers not being interactive after toggling fill mode. Added regression test for `.tool-btn` data-tool attribute.
 - **2026-03-13** — Phase 5 complete. Zoom via scroll wheel toward cursor; pan via middle-click drag or Space+drag. Implemented via SVG viewBox manipulation — canvas content coordinates unchanged.
 - **2026-03-16** — Plant markers now scale proportionally with `sessionScale`. Replaced circle plant icons with traced flower SVG icon.
+- **2026-03-18** — Phase 5b complete. ESLint flat config + Prettier + Husky pre-commit hook (lint-staged → tsc → tests). Extracted pure logic from `main.ts` into `markers.ts`, `chips.ts`, `summary.ts`, `tooltip.ts`, `export.ts`, `toggles.ts`, and extended `geometry.ts` with `computeFillPositions`. 157 tests across 13 files (node + happy-dom). Fixed 10 pre-existing TS errors; added `DOM.Iterable` to tsconfig. Testing strategy documented: Vitest for unit/DOM tests, Playwright deferred for E2E.
