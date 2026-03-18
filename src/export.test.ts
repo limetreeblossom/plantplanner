@@ -28,9 +28,16 @@ function shapeWithMarkers(markers: Plant[]): ShapeData {
 // ── G. Excel export ───────────────────────────────────────────────────────────
 
 describe('buildExportRows', () => {
-  it('includes header row and one data row per plant name', () => {
-    const rows = buildExportRows([shapeWithMarkers([plant({ name: 'Rose', spacing: 0.5 })])]);
+  it('uses scientific_name when available', () => {
+    const rows = buildExportRows([
+      shapeWithMarkers([plant({ name: 'Rose', scientific_name: 'Rosa canina', spacing: 0.5 })]),
+    ]);
     expect(rows[0]).toEqual(['Plant', 'Spacing (m)', 'Count']);
+    expect(rows[1]).toEqual(['Rosa canina', 0.5, 1]);
+  });
+
+  it('falls back to name when scientific_name is absent', () => {
+    const rows = buildExportRows([shapeWithMarkers([plant({ name: 'Rose', spacing: 0.5 })])]);
     expect(rows[1]).toEqual(['Rose', 0.5, 1]);
   });
 
