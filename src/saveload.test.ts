@@ -10,7 +10,6 @@ function rectShape(x = 0, y = 0, w = 200, h = 100): ShapeData {
   return {
     type: 'rect',
     el: null as unknown as SVGGeometryElement,
-    labelEl: null,
     fill: '#eee',
     stroke: '#999',
     x,

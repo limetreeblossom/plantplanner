@@ -1,8 +1,8 @@
 export interface Plant {
   name: string;
   spacing: number; // metres, centre-to-centre
-  color: string;   // CSS hex color
-  slug?: string;   // Trefle slug, present on search results
+  color: string; // CSS hex color
+  slug?: string; // Trefle slug, present on search results
   icon?: 'flower' | 'tree';
   image_url?: string;
   scientific_name?: string;
@@ -18,16 +18,8 @@ export interface PlantMarker {
   el: SVGGElement;
 }
 
-export interface LabelEl {
-  g: SVGGElement;
-  bg: SVGRectElement;
-  tx1: SVGTextElement;
-  tx2: SVGTextElement;
-}
-
 interface ShapeBase {
   el: SVGGeometryElement;
-  labelEl: LabelEl | null;
   fill: string;
   stroke: string;
   plantMarkers: PlantMarker[];

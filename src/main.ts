@@ -32,14 +32,13 @@ import {
   pxToM,
   fmt,
   calcArea,
-  shapeCentroid,
   pointInShape,
   calcScale,
   polygonSelfIntersects,
   calcFillCount,
   computeFillPositions,
 } from './geometry';
-import type { ShapeData, LabelEl, PlantMarker, Plant, PolygonShape } from './types';
+import type { ShapeData, PlantMarker, Plant, PolygonShape } from './types';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const SNAP_RADIUS = 12; // px — distance within which cursor snaps to first polygon vertex
@@ -54,9 +53,8 @@ const bgLayer = document.getElementById('bg-layer') as unknown as SVGGElement;
 const shapesLayer = document.getElementById('shapes-layer') as unknown as SVGGElement;
 const flowersLayer = document.getElementById('flowers-layer') as unknown as SVGGElement;
 const treesLayer = document.getElementById('trees-layer') as unknown as SVGGElement;
-const labelLayer = document.getElementById('label-layer') as unknown as SVGGElement;
 const overlayLayer = document.getElementById('overlay-layer') as unknown as SVGGElement;
-const infoContent = document.getElementById('info-content') as HTMLDivElement;
+const shapeTooltipEl = document.getElementById('shape-tooltip') as HTMLDivElement;
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
 const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
 const statusMsg = document.getElementById('status-msg') as HTMLSpanElement;
@@ -261,64 +259,6 @@ function hideDimLabel(): void {
 }
 
 // ── Permanent canvas label on each shape ───────────────────────────────────
-function makeLabelEl(): LabelEl {
-  const g = document.createElementNS(NS, 'g') as SVGGElement;
-  g.style.pointerEvents = 'none';
-  const bg = document.createElementNS(NS, 'rect') as SVGRectElement;
-  bg.setAttribute('fill', 'rgba(255,255,255,0.82)');
-  bg.setAttribute('rx', '3');
-  const tx1 = document.createElementNS(NS, 'text') as SVGTextElement;
-  const tx2 = document.createElementNS(NS, 'text') as SVGTextElement;
-  for (const tx of [tx1, tx2]) {
-    tx.setAttribute('font-size', '10');
-    tx.setAttribute('font-family', 'system-ui,sans-serif');
-    tx.setAttribute('fill', '#333');
-    tx.setAttribute('text-anchor', 'middle');
-    tx.setAttribute('dominant-baseline', 'middle');
-  }
-  g.appendChild(bg);
-  g.appendChild(tx1);
-  g.appendChild(tx2);
-  g.style.display = 'none';
-  labelLayer.appendChild(g);
-  return { g, bg, tx1, tx2 };
-}
-
-function updateLabelEl(d: ShapeData): void {
-  if (!d.labelEl) return;
-  const { bg, tx1, tx2 } = d.labelEl;
-  const { x: cx, y: cy } = shapeCentroid(d);
-
-  const count = d.plantMarkers.length;
-  const line1 =
-    count > 0
-      ? count + (count === 1 ? ' plant' : ' plants')
-      : fmt(calcArea(d, sessionScale)) + ' m²';
-
-  const pad = 4,
-    lineH = 13;
-  const totalH = lineH + pad * 2;
-  const totalW = line1.length * 6 + pad * 2;
-
-  tx1.textContent = line1;
-  tx1.setAttribute('x', String(cx));
-  tx1.setAttribute('y', String(cy));
-  tx1.setAttribute('font-weight', count > 0 ? '600' : 'normal');
-  tx2.textContent = '';
-  tx2.style.display = 'none';
-
-  bg.setAttribute('width', String(totalW));
-  bg.setAttribute('height', String(totalH));
-  bg.setAttribute('x', String(cx - totalW / 2));
-  bg.setAttribute('y', String(cy - totalH / 2));
-}
-
-function removeLabelEl(d: ShapeData): void {
-  if (d.labelEl) {
-    d.labelEl.g.remove();
-    d.labelEl = null;
-  }
-}
 
 // ── Marker creation ────────────────────────────────────────────────────────
 function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
@@ -331,76 +271,70 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   return g;
 }
 
-// ── Info panel ─────────────────────────────────────────────────────────────
-function updateInfoPanel(d: ShapeData | null): void {
-  if (!d) {
-    infoContent.innerHTML = '<div class="info-empty">No shape selected.</div>';
-    deleteBtn.disabled = true;
-    return;
-  }
-  deleteBtn.disabled = false;
-
+// ── Shape tooltip ───────────────────────────────────────────────────────────
+function buildShapeTooltipHTML(d: ShapeData): string {
   const area = calcArea(d, sessionScale);
-  let dimRows = '';
-
-  if (d.type === 'rect') {
-    dimRows = `
-      <div class="info-row">
-        <span class="info-label">Type</span><span class="info-value">Rectangle</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.w, sessionScale))} m</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.h, sessionScale))} m</span>
-      </div>`;
-  } else if (d.type === 'circle') {
-    dimRows = `
-      <div class="info-row">
-        <span class="info-label">Type</span><span class="info-value">Circle</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Radius</span><span class="info-value">${fmt(pxToM(d.r, sessionScale))} m</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Diameter</span><span class="info-value">${fmt(pxToM(d.r, sessionScale) * 2)} m</span>
-      </div>`;
-  } else if (d.type === 'ellipse') {
-    dimRows = `
-      <div class="info-row">
-        <span class="info-label">Type</span><span class="info-value">Ellipse</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.rx, sessionScale) * 2)} m</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry, sessionScale) * 2)} m</span>
-      </div>`;
-  } else if (d.type === 'polygon') {
-    dimRows = `
-      <div class="info-row">
-        <span class="info-label">Type</span><span class="info-value">Polygon</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Vertices</span><span class="info-value">${d.points.length}</span>
-      </div>`;
-  }
+  const dimRows =
+    d.type === 'rect'
+      ? `<div class="info-row"><span class="info-label">Type</span><span class="info-value">Rectangle</span></div>
+      <div class="info-row"><span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.w, sessionScale))} m</span></div>
+      <div class="info-row"><span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.h, sessionScale))} m</span></div>`
+      : d.type === 'circle'
+        ? `<div class="info-row"><span class="info-label">Type</span><span class="info-value">Circle</span></div>
+      <div class="info-row"><span class="info-label">Radius</span><span class="info-value">${fmt(pxToM(d.r, sessionScale))} m</span></div>
+      <div class="info-row"><span class="info-label">Diameter</span><span class="info-value">${fmt(pxToM(d.r, sessionScale) * 2)} m</span></div>`
+        : d.type === 'ellipse'
+          ? `<div class="info-row"><span class="info-label">Type</span><span class="info-value">Ellipse</span></div>
+      <div class="info-row"><span class="info-label">Width</span><span class="info-value">${fmt(pxToM(d.rx, sessionScale) * 2)} m</span></div>
+      <div class="info-row"><span class="info-label">Height</span><span class="info-value">${fmt(pxToM(d.ry, sessionScale) * 2)} m</span></div>`
+          : `<div class="info-row"><span class="info-label">Type</span><span class="info-value">Polygon</span></div>
+      <div class="info-row"><span class="info-label">Vertices</span><span class="info-value">${d.points.length}</span></div>`;
 
   const count = d.plantMarkers.length;
   const countHTML =
     count > 0
-      ? `<div class="plant-count-row">
-         <span class="plant-count-label">Plants placed</span>
-         <span class="plant-count-value">${count}</span>
-       </div>`
-      : `<div class="info-hint" style="margin-top:6px;">Drag a plant from the left panel onto this bed.</div>`;
+      ? `<div class="plant-count-row"><span class="plant-count-label">Plants placed</span><span class="plant-count-value">${count}</span></div>`
+      : `<div class="info-hint" style="margin-top:4px;">Drag a plant onto this bed.</div>`;
 
-  infoContent.innerHTML = `
-    ${dimRows}
-    <hr class="info-divider">
-    <div class="info-area">Area: ${fmt(area)} m²</div>
-    ${countHTML}
-  `;
+  return `${dimRows}<hr class="info-divider"><div class="info-area">Area: ${fmt(area)} m²</div>${countHTML}`;
+}
+
+function positionShapeTooltip(e: MouseEvent): void {
+  const tipW = shapeTooltipEl.offsetWidth || 180;
+  const left = e.clientX + 14 + tipW > window.innerWidth ? e.clientX - tipW - 14 : e.clientX + 14;
+  shapeTooltipEl.style.left = left + 'px';
+  shapeTooltipEl.style.top = Math.min(e.clientY - 10, window.innerHeight - 150) + 'px';
+}
+
+function hideShapeTooltip(): void {
+  shapeTooltipEl.style.display = 'none';
+}
+
+let detachShapeTooltip: (() => void) | null = null;
+
+function attachShapeTooltipHandlers(d: ShapeData): void {
+  if (detachShapeTooltip) detachShapeTooltip();
+  const onEnter = (e: MouseEvent) => {
+    if (selectedData !== d) return;
+    shapeTooltipEl.innerHTML = buildShapeTooltipHTML(d);
+    shapeTooltipEl.style.display = 'block';
+    positionShapeTooltip(e);
+  };
+  const onMove = (e: MouseEvent) => positionShapeTooltip(e);
+  const onLeave = () => hideShapeTooltip();
+  d.el.addEventListener('mouseenter', onEnter);
+  d.el.addEventListener('mousemove', onMove);
+  d.el.addEventListener('mouseleave', onLeave);
+  detachShapeTooltip = () => {
+    d.el.removeEventListener('mouseenter', onEnter);
+    d.el.removeEventListener('mousemove', onMove);
+    d.el.removeEventListener('mouseleave', onLeave);
+  };
+}
+
+// ── Info panel (delete button only) ────────────────────────────────────────
+function updateInfoPanel(d: ShapeData | null): void {
+  deleteBtn.disabled = !d;
 }
 
 // ── Plant summary ──────────────────────────────────────────────────────────
@@ -477,7 +411,6 @@ function selectMarker(m: PlantMarker, shape: ShapeData): void {
   if (selectedData) {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
-    if (selectedData.labelEl) selectedData.labelEl.g.style.display = 'none';
     selectedData = null;
     updateInfoPanel(null);
   }
@@ -492,14 +425,17 @@ function selectShape(d: ShapeData | null): void {
   if (selectedData) {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
-    if (selectedData.labelEl) selectedData.labelEl.g.style.display = 'none';
   }
+  if (detachShapeTooltip) {
+    detachShapeTooltip();
+    detachShapeTooltip = null;
+  }
+  hideShapeTooltip();
   selectedData = d;
   if (d) {
     d.el.setAttribute('stroke', SEL_STROKE);
     d.el.setAttribute('stroke-width', SEL_SW);
-    updateLabelEl(d);
-    if (d.labelEl) d.labelEl.g.style.display = '';
+    attachShapeTooltipHandlers(d);
   }
   updateInfoPanel(d);
 }
@@ -552,7 +488,6 @@ function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
     const o = dragShapeMarkersOrig[i];
     moveMarkerEl(m, o.x + dx, o.y + dy);
   });
-  updateLabelEl(d);
 }
 
 function findShapeByEl(el: Element): ShapeData | null {
@@ -565,7 +500,6 @@ function deleteSelected(): void {
     selectedMarker.el.remove();
     const idx = selectedMarkerShape.plantMarkers.indexOf(selectedMarker);
     if (idx !== -1) selectedMarkerShape.plantMarkers.splice(idx, 1);
-    updateLabelEl(selectedMarkerShape);
     if (selectedData === selectedMarkerShape) updateInfoPanel(selectedMarkerShape);
     updateSummary();
     deselectMarker();
@@ -576,7 +510,6 @@ function deleteSelected(): void {
   if (!confirm('Delete this shape and all its plants?')) return;
   for (const m of selectedData.plantMarkers) m.el.remove();
   selectedData.el.remove();
-  removeLabelEl(selectedData);
   shapes = shapes.filter((s) => s !== selectedData);
   selectedData = null;
   updateInfoPanel(null);
@@ -689,14 +622,11 @@ function finalizePolygon(): void {
   const d: PolygonShape = {
     type: 'polygon',
     el: el as SVGGeometryElement,
-    labelEl: null,
     plantMarkers: [],
     points: [...polyPts],
     fill,
     stroke,
   };
-  d.labelEl = makeLabelEl();
-  updateLabelEl(d);
   shapes.push(d);
 
   clearPolygon();
@@ -722,7 +652,6 @@ function applyCalibration(): void {
     sessionScale = calcScale(calibPts[0].x, calibPts[0].y, calibPts[1].x, calibPts[1].y, realM);
     scaleInfo.textContent = `Scale: 1 m = ${Math.round(sessionScale)} px`;
     drawGrid(sessionScale);
-    for (const s of shapes) updateLabelEl(s);
     for (const s of shapes) {
       for (const m of s.plantMarkers) {
         const ringR = (m.plant.spacing / 2) * sessionScale;
@@ -827,7 +756,6 @@ function pasteMarker(): void {
   const markerEl = createMarkerEl(markerClipboard.plant, x, y);
   const marker: PlantMarker = { plant: markerClipboard.plant, x, y, el: markerEl };
   markerClipboardShape.plantMarkers.push(marker);
-  updateLabelEl(markerClipboardShape);
   if (selectedData === markerClipboardShape) updateInfoPanel(markerClipboardShape);
   updateSummary();
 }
@@ -1111,7 +1039,6 @@ function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
     return;
   }
 
-  updateLabelEl(shape);
   if (selectedData === shape) updateInfoPanel(shape);
   updateSummary();
   statusMsg.textContent = `Filled with ${placed} × ${plant.name}`;
@@ -1152,7 +1079,6 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   targetShape.plantMarkers.push(marker);
   selectMarker(marker, targetShape);
 
-  updateLabelEl(targetShape);
   updateInfoPanel(targetShape);
   updateSummary();
 });
@@ -1453,7 +1379,6 @@ document.addEventListener('mouseup', () => {
     d = {
       type: 'rect',
       el: el as SVGGeometryElement,
-      labelEl: null,
       plantMarkers: [],
       x: parseFloat(el.getAttribute('x') ?? '0'),
       y: parseFloat(el.getAttribute('y') ?? '0'),
@@ -1472,7 +1397,6 @@ document.addEventListener('mouseup', () => {
     d = {
       type: 'circle',
       el: el as SVGGeometryElement,
-      labelEl: null,
       plantMarkers: [],
       cx: parseFloat(el.getAttribute('cx') ?? '0'),
       cy: parseFloat(el.getAttribute('cy') ?? '0'),
@@ -1491,7 +1415,6 @@ document.addEventListener('mouseup', () => {
     d = {
       type: 'ellipse',
       el: el as SVGGeometryElement,
-      labelEl: null,
       plantMarkers: [],
       cx: parseFloat(el.getAttribute('cx') ?? '0'),
       cy: parseFloat(el.getAttribute('cy') ?? '0'),
@@ -1507,8 +1430,6 @@ document.addEventListener('mouseup', () => {
     return;
   }
 
-  d.labelEl = makeLabelEl();
-  updateLabelEl(d);
   shapes.push(d);
   activeEl = null;
 
@@ -1538,7 +1459,6 @@ function clearCanvas(): void {
   shapesLayer.innerHTML = '';
   flowersLayer.innerHTML = '';
   treesLayer.innerHTML = '';
-  labelLayer.innerHTML = '';
   if (bgImageEl) {
     bgLayer.removeChild(bgImageEl);
     bgImageEl = null;
@@ -1580,7 +1500,6 @@ function restoreShapeFromSave(saved: SavedShape): ShapeData {
     d = {
       type: 'rect',
       el,
-      labelEl: null,
       plantMarkers: [],
       x: saved.x,
       y: saved.y,
@@ -1598,7 +1517,6 @@ function restoreShapeFromSave(saved: SavedShape): ShapeData {
     d = {
       type: 'circle',
       el,
-      labelEl: null,
       plantMarkers: [],
       cx: saved.cx,
       cy: saved.cy,
@@ -1616,7 +1534,6 @@ function restoreShapeFromSave(saved: SavedShape): ShapeData {
     d = {
       type: 'ellipse',
       el,
-      labelEl: null,
       plantMarkers: [],
       cx: saved.cx,
       cy: saved.cy,
@@ -1632,7 +1549,6 @@ function restoreShapeFromSave(saved: SavedShape): ShapeData {
     d = {
       type: 'polygon',
       el,
-      labelEl: null,
       plantMarkers: [],
       points: saved.points,
       fill,
@@ -1647,12 +1563,10 @@ function restoreShapeFromSave(saved: SavedShape): ShapeData {
   el.style.cursor = 'pointer';
   shapesLayer.appendChild(el);
 
-  d.labelEl = makeLabelEl();
   for (const m of saved.markers) {
     const markerEl = createMarkerEl(m.plant, m.x, m.y);
     d.plantMarkers.push({ plant: m.plant, x: m.x, y: m.y, el: markerEl });
   }
-  updateLabelEl(d);
   return d;
 }
 

@@ -10,7 +10,6 @@ function shapeWithMarkers(markers: Array<{ plant: Plant }>): ShapeData {
   return {
     type: 'rect',
     el: null as unknown as SVGGeometryElement,
-    labelEl: null,
     fill: '',
     stroke: '',
     x: 0,

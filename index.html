@@ -254,6 +254,20 @@
         color: #43a047;
       }
 
+      #shape-tooltip {
+        position: fixed;
+        z-index: 9998;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 10px 12px;
+        pointer-events: none;
+        display: none;
+        min-width: 160px;
+        font-size: 0.82rem;
+      }
+
       #plant-img-tooltip {
         position: fixed;
         z-index: 9999;
@@ -659,19 +673,13 @@
       </div>
 
       <div id="right-panel">
-        <!-- Shape info -->
-        <div class="panel-section" id="shape-section">
-          <h2>Shape Info</h2>
-          <div id="info-content">
-            <div class="info-empty">No shape selected.</div>
-          </div>
-          <div class="info-hint" style="margin-top: 10px">
-            <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br />
-            <b>E</b> ellipse &nbsp; <b>P</b> polygon &nbsp; <b>Del</b> delete<br />
-            <b>Esc</b> cancel polygon<br />
-            Enable <b>Fill mode</b> then drop to fill shape<br />
-            <b>Scroll</b> zoom &nbsp; <b>Space+drag</b> or <b>middle-drag</b> pan
-          </div>
+        <!-- Keyboard hint -->
+        <div class="info-hint" style="padding: 10px 12px">
+          <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br />
+          <b>E</b> ellipse &nbsp; <b>P</b> polygon &nbsp; <b>Del</b> delete<br />
+          <b>Esc</b> cancel polygon<br />
+          Enable <b>Fill mode</b> then drop to fill shape<br />
+          <b>Scroll</b> zoom &nbsp; <b>Space+drag</b> or <b>middle-drag</b> pan
         </div>
 
         <!-- Running plant totals -->
@@ -690,6 +698,8 @@
         </div>
       </div>
     </div>
+
+    <div id="shape-tooltip"></div>
 
     <div id="plant-img-tooltip">
       <img id="plant-tip-img" src="" alt="" />
