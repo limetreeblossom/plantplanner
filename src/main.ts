@@ -37,6 +37,8 @@ import {
   polygonSelfIntersects,
   calcFillCount,
   computeFillPositions,
+  calcZoomLimits,
+  rulerTicks,
 } from './geometry';
 import type { ShapeData, PlantMarker, Plant, PolygonShape } from './types';
 
@@ -974,15 +976,6 @@ function drawRulers(): void {
   const svgH = svgEl.clientHeight;
   if (!svgW || !svgH) return;
 
-  // CSS pixels per metre on the rendered SVG
-  const pxPerM = (sessionScale / vbW) * svgW;
-
-  // Choose label interval based on zoom
-  let labelStep = 1;
-  if (pxPerM < 20) labelStep = 10;
-  else if (pxPerM < 40) labelStep = 5;
-  else if (pxPerM < 80) labelStep = 2;
-
   const RULER_SIZE = 20;
   const BG = '#f0f0f0';
   const TICK = '#999';
@@ -1001,37 +994,31 @@ function drawRulers(): void {
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const firstM = Math.ceil(vbStart / sessionScale);
-    const lastM = Math.floor((vbStart + vbSpan) / sessionScale);
-
     ctx.font = '9px system-ui,sans-serif';
     ctx.fillStyle = TEXT_COLOR;
     ctx.strokeStyle = TICK;
 
-    for (let m = firstM; m <= lastM; m++) {
-      const pos = ((m * sessionScale - vbStart) / vbSpan) * length;
-      const major = m % labelStep === 0;
-      const tickLen = major ? 10 : 5;
-
-      ctx.lineWidth = major ? 1 : 0.5;
+    for (const tick of rulerTicks(vbStart, vbSpan, length, sessionScale)) {
+      const tickLen = tick.major ? 10 : 5;
+      ctx.lineWidth = tick.major ? 1 : 0.5;
       ctx.beginPath();
       if (isHorizontal) {
-        ctx.moveTo(pos, RULER_SIZE - tickLen);
-        ctx.lineTo(pos, RULER_SIZE);
+        ctx.moveTo(tick.pos, RULER_SIZE - tickLen);
+        ctx.lineTo(tick.pos, RULER_SIZE);
       } else {
-        ctx.moveTo(RULER_SIZE - tickLen, pos);
-        ctx.lineTo(RULER_SIZE, pos);
+        ctx.moveTo(RULER_SIZE - tickLen, tick.pos);
+        ctx.lineTo(RULER_SIZE, tick.pos);
       }
       ctx.stroke();
 
-      if (major) {
-        const label = m + 'm';
+      if (tick.showLabel) {
+        const label = tick.m + 'm';
         if (isHorizontal) {
           ctx.textAlign = 'center';
-          ctx.fillText(label, pos, RULER_SIZE - tickLen - 2);
+          ctx.fillText(label, tick.pos, RULER_SIZE - tickLen - 2);
         } else {
           ctx.save();
-          ctx.translate(RULER_SIZE - tickLen - 2, pos);
+          ctx.translate(RULER_SIZE - tickLen - 2, tick.pos);
           ctx.rotate(-Math.PI / 2);
           ctx.textAlign = 'center';
           ctx.fillText(label, 0, 0);
@@ -1051,22 +1038,21 @@ function applyViewBox(): void {
 }
 
 const ZOOM_FACTOR = 1.15;
-const MIN_VBW = CANVAS_W * 0.1; // max ~10× zoom in
-const MAX_VBW = CANVAS_W * 4; // ~4× zoom out
 
 svgEl.addEventListener(
   'wheel',
   (e: WheelEvent) => {
     e.preventDefault();
+    const { minVbW, maxVbW } = calcZoomLimits(sessionScale);
     const pt = svgCoords(e);
     const factor = e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    const newW = Math.min(MAX_VBW, Math.max(MIN_VBW, vbW * factor));
-    const newH = newW * (CANVAS_H / CANVAS_W);
+    const newW = Math.min(maxVbW, Math.max(minVbW, vbW * factor));
+    const newH = newW * (svgEl.clientHeight / svgEl.clientWidth);
     const rect = svgEl.getBoundingClientRect();
     const relX = (e.clientX - rect.left) / rect.width;
     const relY = (e.clientY - rect.top) / rect.height;
-    vbX = pt.x - relX * newW;
-    vbY = pt.y - relY * newH;
+    vbX = Math.max(0, pt.x - relX * newW);
+    vbY = Math.max(0, pt.y - relY * newH);
     vbW = newW;
     vbH = newH;
     applyViewBox();
@@ -1226,9 +1212,12 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
       calibLineEl.setAttribute('stroke-width', '2');
       calibLineEl.style.pointerEvents = 'none';
       overlayLayer.appendChild(calibLineEl);
-      const svgRect = svgEl.getBoundingClientRect();
-      calibOverlay.style.left = svgRect.left + (calibPts[0].x + pt.x) / 2 + 'px';
-      calibOverlay.style.top = svgRect.top + (calibPts[0].y + pt.y) / 2 - 20 + 'px';
+      const midPt = svgEl.createSVGPoint();
+      midPt.x = (calibPts[0].x + pt.x) / 2;
+      midPt.y = (calibPts[0].y + pt.y) / 2;
+      const midScreen = midPt.matrixTransform(svgEl.getScreenCTM()!);
+      calibOverlay.style.left = midScreen.x + 'px';
+      calibOverlay.style.top = midScreen.y - 20 + 'px';
       calibOverlay.style.display = 'block';
       calibInput.value = '';
       calibInput.focus();
@@ -1334,8 +1323,8 @@ svgEl.addEventListener('mousedown', (e: MouseEvent) => {
 svgEl.addEventListener('mousemove', (e: MouseEvent) => {
   if (panning) {
     const rect = svgEl.getBoundingClientRect();
-    vbX = panVbStartX - ((e.clientX - panStartX) / rect.width) * vbW;
-    vbY = panVbStartY - ((e.clientY - panStartY) / rect.height) * vbH;
+    vbX = Math.max(0, panVbStartX - ((e.clientX - panStartX) / rect.width) * vbW);
+    vbY = Math.max(0, panVbStartY - ((e.clientY - panStartY) / rect.height) * vbH);
     applyViewBox();
     return;
   }
@@ -1550,7 +1539,7 @@ function clearCanvas(): void {
   vbX = 0;
   vbY = 0;
   vbW = CANVAS_W;
-  vbH = CANVAS_H;
+  vbH = svgEl.clientHeight ? vbW * (svgEl.clientHeight / svgEl.clientWidth) : CANVAS_H;
   applyViewBox();
 }
 
@@ -1718,6 +1707,13 @@ plantSearchEl.addEventListener('input', () => {
 drawGrid();
 drawRulers();
 setTool('select');
+
+// Recompute vbH whenever the canvas container resizes so the SVG fills the space
+new ResizeObserver(() => {
+  if (!svgEl.clientWidth || !svgEl.clientHeight) return;
+  vbH = vbW * (svgEl.clientHeight / svgEl.clientWidth);
+  applyViewBox();
+}).observe(document.getElementById('canvas-container')!);
 
 window.addEventListener('beforeunload', (e) => {
   if (shapes.length > 0) e.preventDefault();

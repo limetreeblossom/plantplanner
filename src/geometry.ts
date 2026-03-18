@@ -182,3 +182,57 @@ export function computeFillPositions(
 
   return positions;
 }
+
+// ── Zoom limits ────────────────────────────────────────────────────────────
+
+/**
+ * Returns the min/max viewBox width for zoom, scaled to the current session
+ * scale so calibration doesn't artificially restrict zoom range.
+ */
+export function calcZoomLimits(sessionScale: number): { minVbW: number; maxVbW: number } {
+  const f = sessionScale / SCALE;
+  return { minVbW: CANVAS_W * 0.1 * f, maxVbW: CANVAS_W * 4 * f };
+}
+
+// ── Ruler ticks ────────────────────────────────────────────────────────────
+
+export interface RulerTick {
+  m: number; // metre value
+  pos: number; // pixel position along the ruler canvas
+  major: boolean;
+  showLabel: boolean; // false when too close to the left/top edge
+}
+
+const LABEL_EDGE_GUARD = 8; // px — suppress label when closer than this to ruler start
+
+/**
+ * Computes the tick marks for a ruler canvas.
+ * @param vbStart  viewBox origin (vbX or vbY)
+ * @param vbSpan   viewBox dimension (vbW or vbH)
+ * @param length   ruler canvas length in CSS pixels
+ * @param sessionScale  current px-per-metre scale
+ */
+export function rulerTicks(
+  vbStart: number,
+  vbSpan: number,
+  length: number,
+  sessionScale: number,
+): RulerTick[] {
+  const pxPerM = (sessionScale / vbSpan) * length;
+  let labelStep = 1;
+  if (pxPerM < 20) labelStep = 10;
+  else if (pxPerM < 40) labelStep = 5;
+  else if (pxPerM < 80) labelStep = 2;
+
+  const firstM = Math.ceil(vbStart / sessionScale);
+  const lastM = Math.floor((vbStart + vbSpan) / sessionScale);
+  const ticks: RulerTick[] = [];
+
+  for (let m = firstM; m <= lastM; m++) {
+    const pos = ((m * sessionScale - vbStart) / vbSpan) * length;
+    const major = m % labelStep === 0;
+    ticks.push({ m, pos, major, showLabel: major && pos > LABEL_EDGE_GUARD });
+  }
+
+  return ticks;
+}
