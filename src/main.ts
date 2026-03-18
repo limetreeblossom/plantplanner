@@ -566,6 +566,7 @@ function deleteSelected(): void {
     return;
   }
   if (!selectedData) return;
+  if (!confirm('Delete this shape and all its plants?')) return;
   for (const m of selectedData.plantMarkers) m.el.remove();
   selectedData.el.remove();
   removeLabelEl(selectedData);
@@ -1717,3 +1718,7 @@ plantSearchEl.addEventListener('input', () => {
 
 drawGrid();
 setTool('select');
+
+window.addEventListener('beforeunload', (e) => {
+  if (shapes.length > 0) e.preventDefault();
+});
