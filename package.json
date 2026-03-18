@@ -18,17 +18,27 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "src/**/*.ts": ["eslint --fix", "prettier --write"],
-    "scripts/**/*.ts": ["eslint --fix", "prettier --write"],
-    "index.html": ["prettier --write"]
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "scripts/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "index.html": [
+      "prettier --write"
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/browser": "^4.1.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.8.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
