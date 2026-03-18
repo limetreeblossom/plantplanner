@@ -66,6 +66,7 @@ export function createTreeMarker(x: number, y: number, dotR: number): SVGGElemen
   const g = document.createElementNS(NS, 'g') as SVGGElement;
   g.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-355.5,-140.3)`);
   g.classList.add('tree-icon');
+  g.setAttribute('opacity', '0.55');
 
   const shadow = document.createElementNS(NS, 'path') as SVGPathElement;
   shadow.setAttribute('d', TREE_SHADOW_D);

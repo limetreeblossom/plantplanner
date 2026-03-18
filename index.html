@@ -160,7 +160,7 @@
 
       /* ── Left panel ── */
       #left-panel {
-        width: 160px;
+        width: 240px;
         flex-shrink: 0;
         background: #fff;
         border-right: 1px solid #ddd;
@@ -403,16 +403,16 @@
       /* ── Canvas ── */
       #canvas-container {
         flex: 1;
-        overflow: auto;
-        padding: 20px;
+        overflow: hidden;
         display: flex;
-        align-items: flex-start;
-        justify-content: flex-start;
+        align-items: stretch;
       }
       #canvas-wrap {
-        display: inline-grid;
-        grid-template-columns: 20px auto;
-        grid-template-rows: 20px auto;
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        grid-template-rows: 20px 1fr;
+        width: 100%;
+        height: 100%;
         line-height: 0;
       }
       #ruler-corner {
@@ -436,7 +436,8 @@
         border: 1px solid #ccc;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         display: block;
-        flex-shrink: 0;
+        width: 100%;
+        height: 100%;
         user-select: none;
       }
       #canvas.tool-select {
@@ -655,9 +656,8 @@
           <canvas id="v-ruler" width="20"></canvas>
           <svg
             id="canvas"
-            width="900"
-            height="600"
             viewBox="0 0 900 600"
+            preserveAspectRatio="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             <g id="bg-layer"></g>
