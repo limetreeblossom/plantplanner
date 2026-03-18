@@ -60,7 +60,6 @@ const hRuler = document.getElementById('h-ruler') as HTMLCanvasElement;
 const vRuler = document.getElementById('v-ruler') as HTMLCanvasElement;
 const shapeTooltipEl = document.getElementById('shape-tooltip') as HTMLDivElement;
 const summaryContent = document.getElementById('summary-content') as HTMLDivElement;
-const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
 const statusMsg = document.getElementById('status-msg') as HTMLSpanElement;
 const importBgBtn = document.getElementById('import-bg-btn') as HTMLButtonElement;
 const bgFileInput = document.getElementById('bg-file-input') as HTMLInputElement;
@@ -325,11 +324,6 @@ function attachShapeTooltipHandlers(d: ShapeData): void {
   };
 }
 
-// ── Info panel (delete button only) ────────────────────────────────────────
-function updateInfoPanel(d: ShapeData | null): void {
-  deleteBtn.disabled = !d;
-}
-
 // ── Plant summary ──────────────────────────────────────────────────────────
 function renderUsedPlants(): void {
   const section = document.getElementById('used-plants-section') as HTMLDivElement;
@@ -405,12 +399,10 @@ function selectMarker(m: PlantMarker, shape: ShapeData): void {
     selectedData.el.setAttribute('stroke', selectedData.stroke);
     selectedData.el.setAttribute('stroke-width', DEF_SW);
     selectedData = null;
-    updateInfoPanel(null);
   }
   selectedMarker = m;
   selectedMarkerShape = shape;
   showMarkerSelection(m.el);
-  deleteBtn.disabled = false;
 }
 
 function selectShape(d: ShapeData | null): void {
@@ -430,7 +422,6 @@ function selectShape(d: ShapeData | null): void {
     d.el.setAttribute('stroke-width', SEL_SW);
     attachShapeTooltipHandlers(d);
   }
-  updateInfoPanel(d);
 }
 
 // ── Drag helpers ────────────────────────────────────────────────────────────
@@ -493,10 +484,8 @@ function deleteSelected(): void {
     selectedMarker.el.remove();
     const idx = selectedMarkerShape.plantMarkers.indexOf(selectedMarker);
     if (idx !== -1) selectedMarkerShape.plantMarkers.splice(idx, 1);
-    if (selectedData === selectedMarkerShape) updateInfoPanel(selectedMarkerShape);
     updateSummary();
     deselectMarker();
-    deleteBtn.disabled = true;
     return;
   }
   if (!selectedData) return;
@@ -505,11 +494,9 @@ function deleteSelected(): void {
   selectedData.el.remove();
   shapes = shapes.filter((s) => s !== selectedData);
   selectedData = null;
-  updateInfoPanel(null);
+
   updateSummary();
 }
-
-deleteBtn.addEventListener('click', deleteSelected);
 
 // ── Fill mode toggle ───────────────────────────────────────────────────────
 const fillModeBtn = document.getElementById('fill-mode-btn') as HTMLButtonElement;
@@ -674,7 +661,6 @@ function applyCalibration(): void {
         if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
       }
     }
-    if (selectedData) updateInfoPanel(selectedData);
     statusMsg.textContent = `Scale calibrated: 1 m = ${fmt(sessionScale, 1)} px`;
   }
   clearCalibration();
@@ -750,7 +736,6 @@ function pasteMarker(): void {
   const markerEl = createMarkerEl(markerClipboard.plant, x, y);
   const marker: PlantMarker = { plant: markerClipboard.plant, x, y, el: markerEl };
   markerClipboardShape.plantMarkers.push(marker);
-  if (selectedData === markerClipboardShape) updateInfoPanel(markerClipboardShape);
   updateSummary();
 }
 
@@ -1094,7 +1079,6 @@ function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
     return;
   }
 
-  if (selectedData === shape) updateInfoPanel(shape);
   updateSummary();
   statusMsg.textContent = `Filled with ${placed} × ${plant.name}`;
 }
@@ -1134,7 +1118,6 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   targetShape.plantMarkers.push(marker);
   selectMarker(marker, targetShape);
 
-  updateInfoPanel(targetShape);
   updateSummary();
 });
 
@@ -1531,7 +1514,7 @@ function clearCanvas(): void {
   draggingMarker = null;
   fillMode = false;
   fillModeBtn.classList.remove('active');
-  updateInfoPanel(null);
+
   sessionScale = SCALE;
   scaleInfo.textContent = '';
   drawGrid();

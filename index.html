@@ -73,25 +73,6 @@
         border-color: #2e7d32;
       }
 
-      #delete-btn {
-        margin-left: auto;
-        padding: 5px 13px;
-        border: 1px solid #e57373;
-        border-radius: 5px;
-        background: #fff;
-        color: #c62828;
-        cursor: pointer;
-        font-size: 0.82rem;
-        transition: background 0.1s;
-      }
-      #delete-btn:hover:not(:disabled) {
-        background: #ffebee;
-      }
-      #delete-btn:disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-
       /* Hide spacing rings when toggled off */
       body.hide-rings .spacing-ring {
         display: none;
@@ -627,8 +608,6 @@
       <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
       <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
       <input type="file" id="load-file-input" accept=".json" style="display: none" />
-
-      <button id="delete-btn" disabled title="Delete selected shape (Del)">Delete shape</button>
     </div>
 
     <div id="workspace">
