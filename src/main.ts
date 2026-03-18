@@ -792,6 +792,30 @@ document.querySelectorAll('.tool-btn').forEach((b) => {
   b.addEventListener('click', () => setTool((b as HTMLElement).dataset['tool'] as Tool));
 });
 
+// ── Copy / Paste ────────────────────────────────────────────────────────────
+const PASTE_OFFSET = 20;
+let markerClipboard: { plant: Plant; x: number; y: number } | null = null;
+let markerClipboardShape: ShapeData | null = null;
+
+function copySelected(): void {
+  if (!selectedMarker || !selectedMarkerShape) return;
+  markerClipboard = { plant: selectedMarker.plant, x: selectedMarker.x, y: selectedMarker.y };
+  markerClipboardShape = selectedMarkerShape;
+}
+
+function pasteMarker(): void {
+  if (!markerClipboard || !markerClipboardShape || !selectedMarker) return;
+  const x = markerClipboard.x + PASTE_OFFSET;
+  const y = markerClipboard.y + PASTE_OFFSET;
+  markerClipboard = { ...markerClipboard, x, y };
+  const markerEl = createMarkerEl(markerClipboard.plant, x, y);
+  const marker: PlantMarker = { plant: markerClipboard.plant, x, y, el: markerEl };
+  markerClipboardShape.plantMarkers.push(marker);
+  updateLabelEl(markerClipboardShape);
+  if (selectedData === markerClipboardShape) updateInfoPanel(markerClipboardShape);
+  updateSummary();
+}
+
 // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if ((e.target as HTMLElement).tagName === 'INPUT') return;
@@ -799,6 +823,17 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     spaceDown = true;
     svgEl.style.cursor = 'grab';
     e.preventDefault();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'c') {
+      copySelected();
+      e.preventDefault();
+    }
+    if (e.key === 'v') {
+      pasteMarker();
+      e.preventDefault();
+    }
     return;
   }
   if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -1099,9 +1134,10 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   const markerEl = createMarkerEl(plant, x, y);
   const marker: PlantMarker = { plant, x, y, el: markerEl };
   targetShape.plantMarkers.push(marker);
+  selectMarker(marker, targetShape);
 
   updateLabelEl(targetShape);
-  if (selectedData === targetShape) updateInfoPanel(targetShape);
+  updateInfoPanel(targetShape);
   updateSummary();
 });
 
