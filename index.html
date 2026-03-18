@@ -47,6 +47,7 @@
         letter-spacing: 0.06em;
         color: #bbb;
         padding: 0 2px;
+        text-align: center;
       }
       .toolbar-group-btns {
         display: flex;
@@ -59,6 +60,7 @@
         color: #2e6b18;
         margin-right: 14px;
         white-space: nowrap;
+        min-width: 246px; /* aligns first toolbar section with canvas edge (240px panel + 20px ruler − 14px toolbar padding) */
       }
 
       .sep {
@@ -167,13 +169,19 @@
         overflow: hidden;
       }
 
+      #left-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 14px 8px;
+        flex-shrink: 0;
+      }
+
       #left-panel h2 {
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.07em;
         color: #999;
-        padding: 14px 14px 8px;
-        flex-shrink: 0;
       }
 
       #plant-search {
@@ -626,29 +634,30 @@
       </div>
 
       <div class="sep"></div>
-      <label class="toggle-wrap" title="Toggle fill mode — next drop fills entire shape">
-        <input type="checkbox" id="fill-mode-check" />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>Fill mode</span>
-      </label>
-
-      <div class="sep"></div>
       <div class="toolbar-group">
         <span class="toolbar-group-label">File</span>
         <div class="toolbar-group-btns">
-          <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>
-          <button class="tool-btn" id="load-btn" title="Load design from file">Load</button>
+          <button class="tool-btn" id="save-btn" title="Save design to file">Save project</button>
+          <button class="tool-btn" id="load-btn" title="Load design from file">Load project</button>
           <input type="file" id="load-file-input" accept=".json" style="display: none" />
           <button class="tool-btn" id="export-xls-btn" title="Export plant summary to Excel">
             Export plant summary
           </button>
         </div>
       </div>
+      <div class="sep"></div>
     </div>
 
     <div id="workspace">
       <div id="left-panel">
-        <h2>Plants</h2>
+        <div id="left-panel-header">
+          <h2>Plants</h2>
+          <label class="toggle-wrap" title="Toggle fill mode — next drop fills entire shape">
+            <input type="checkbox" id="fill-mode-check" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span>Fill mode</span>
+          </label>
+        </div>
         <input
           type="search"
           id="plant-search"
