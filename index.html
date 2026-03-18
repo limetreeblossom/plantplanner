@@ -596,13 +596,11 @@
       </button>
 
       <div class="sep"></div>
-      <button
-        class="tool-btn"
-        id="fill-mode-btn"
-        title="Toggle fill mode — next drop fills entire shape"
-      >
-        Fill mode
-      </button>
+      <label class="toggle-wrap" title="Toggle fill mode — next drop fills entire shape">
+        <input type="checkbox" id="fill-mode-check" />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>Fill mode</span>
+      </label>
 
       <div class="sep"></div>
       <button class="tool-btn" id="save-btn" title="Save design to file">Save</button>

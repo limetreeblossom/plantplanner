@@ -499,10 +499,9 @@ function deleteSelected(): void {
 }
 
 // ── Fill mode toggle ───────────────────────────────────────────────────────
-const fillModeBtn = document.getElementById('fill-mode-btn') as HTMLButtonElement;
-fillModeBtn.addEventListener('click', () => {
-  fillMode = !fillMode;
-  fillModeBtn.classList.toggle('active', fillMode);
+const fillModeCheck = document.getElementById('fill-mode-check') as HTMLInputElement;
+fillModeCheck.addEventListener('change', () => {
+  fillMode = fillModeCheck.checked;
 });
 
 // ── Visibility toggles ─────────────────────────────────────────────────────
@@ -1108,7 +1107,7 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
 
   if (fillMode) {
     fillMode = false;
-    fillModeBtn.classList.remove('active');
+    fillModeCheck.checked = false;
     fillShapeWithPlant(targetShape, plant);
     return;
   }
@@ -1513,7 +1512,7 @@ function clearCanvas(): void {
   draggingShape = null;
   draggingMarker = null;
   fillMode = false;
-  fillModeBtn.classList.remove('active');
+  fillModeCheck.checked = false;
 
   sessionScale = SCALE;
   scaleInfo.textContent = '';
