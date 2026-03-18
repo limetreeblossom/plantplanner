@@ -14,7 +14,13 @@ import {
 
 import { buildChipEl } from './chips';
 import { buildExportRows } from './export';
-import { applyRingsToggle, applyGridToggle, applyBgToggle } from './toggles';
+import {
+  applyRingsToggle,
+  applyGridToggle,
+  applyBgToggle,
+  applyFlowersToggle,
+  applyTreesToggle,
+} from './toggles';
 import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
 import { buildSaveData, parseSaveData } from './saveload';
 import type { SavedShape, SaveData } from './saveload';
@@ -46,7 +52,8 @@ let colorIndex = 0;
 const svgEl = document.getElementById('canvas') as unknown as SVGSVGElement;
 const bgLayer = document.getElementById('bg-layer') as unknown as SVGGElement;
 const shapesLayer = document.getElementById('shapes-layer') as unknown as SVGGElement;
-const markersLayer = document.getElementById('markers-layer') as unknown as SVGGElement;
+const flowersLayer = document.getElementById('flowers-layer') as unknown as SVGGElement;
+const treesLayer = document.getElementById('trees-layer') as unknown as SVGGElement;
 const labelLayer = document.getElementById('label-layer') as unknown as SVGGElement;
 const overlayLayer = document.getElementById('overlay-layer') as unknown as SVGGElement;
 const infoContent = document.getElementById('info-content') as HTMLDivElement;
@@ -320,7 +327,7 @@ function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
     g.addEventListener('mouseenter', () => showImgTooltip(plant, g));
     g.addEventListener('mouseleave', hideImgTooltip);
   }
-  markersLayer.appendChild(g);
+  (plant.icon === 'tree' ? treesLayer : flowersLayer).appendChild(g);
   return g;
 }
 
@@ -594,6 +601,14 @@ gridToggle.addEventListener('change', () => applyGridToggle(document.body, gridT
 
 const bgToggle = document.getElementById('bg-toggle') as HTMLInputElement;
 bgToggle.addEventListener('change', () => applyBgToggle(document.body, bgToggle.checked));
+
+const flowersToggle = document.getElementById('flowers-toggle') as HTMLInputElement;
+flowersToggle.addEventListener('change', () =>
+  applyFlowersToggle(document.body, flowersToggle.checked),
+);
+
+const treesToggle = document.getElementById('trees-toggle') as HTMLInputElement;
+treesToggle.addEventListener('change', () => applyTreesToggle(document.body, treesToggle.checked));
 
 // ── Polygon drawing helpers ────────────────────────────────────────────────
 function clearPolygon(): void {
@@ -1521,7 +1536,8 @@ function saveDesign(): void {
 function clearCanvas(): void {
   setTool('select'); // resets polygon / calibration state and overlayLayer elements
   shapesLayer.innerHTML = '';
-  markersLayer.innerHTML = '';
+  flowersLayer.innerHTML = '';
+  treesLayer.innerHTML = '';
   labelLayer.innerHTML = '';
   if (bgImageEl) {
     bgLayer.removeChild(bgImageEl);

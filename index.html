@@ -102,6 +102,12 @@
       body.hide-bg #bg-layer {
         display: none;
       }
+      body.hide-flowers #flowers-layer {
+        display: none;
+      }
+      body.hide-trees #trees-layer {
+        display: none;
+      }
 
       /* ── CC toggle switch ── */
       .toggle-wrap {
@@ -588,6 +594,16 @@
         <span class="toggle-track"><span class="toggle-thumb"></span></span>
         <span>BG</span>
       </label>
+      <label class="toggle-wrap" title="Show/hide flowers">
+        <input type="checkbox" id="flowers-toggle" checked />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>Flowers</span>
+      </label>
+      <label class="toggle-wrap" title="Show/hide trees">
+        <input type="checkbox" id="trees-toggle" checked />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>Trees</span>
+      </label>
 
       <div class="sep"></div>
       <button
@@ -635,7 +651,8 @@
           <g id="bg-layer"></g>
           <g id="grid-layer"></g>
           <g id="shapes-layer"></g>
-          <g id="markers-layer"></g>
+          <g id="flowers-layer"></g>
+          <g id="trees-layer"></g>
           <g id="label-layer"></g>
           <g id="overlay-layer"></g>
         </svg>
