@@ -593,33 +593,6 @@
       </button>
 
       <div class="sep"></div>
-      <label class="toggle-wrap" title="Show/hide CC spacing rings">
-        <input type="checkbox" id="rings-toggle" checked />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>CC</span>
-      </label>
-      <label class="toggle-wrap" title="Show/hide grid">
-        <input type="checkbox" id="grid-toggle" checked />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>Grid</span>
-      </label>
-      <label class="toggle-wrap" title="Show/hide background image">
-        <input type="checkbox" id="bg-toggle" checked />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>BG</span>
-      </label>
-      <label class="toggle-wrap" title="Show/hide flowers">
-        <input type="checkbox" id="flowers-toggle" checked />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>Flowers</span>
-      </label>
-      <label class="toggle-wrap" title="Show/hide trees">
-        <input type="checkbox" id="trees-toggle" checked />
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span>Trees</span>
-      </label>
-
-      <div class="sep"></div>
       <button
         class="tool-btn"
         id="fill-mode-btn"
@@ -667,19 +640,41 @@
           <g id="shapes-layer"></g>
           <g id="flowers-layer"></g>
           <g id="trees-layer"></g>
-          <g id="label-layer"></g>
           <g id="overlay-layer"></g>
         </svg>
       </div>
 
       <div id="right-panel">
-        <!-- Keyboard hint -->
-        <div class="info-hint" style="padding: 10px 12px">
-          <b>S</b> select &nbsp; <b>R</b> rect &nbsp; <b>C</b> circle<br />
-          <b>E</b> ellipse &nbsp; <b>P</b> polygon &nbsp; <b>Del</b> delete<br />
-          <b>Esc</b> cancel polygon<br />
-          Enable <b>Fill mode</b> then drop to fill shape<br />
-          <b>Scroll</b> zoom &nbsp; <b>Space+drag</b> or <b>middle-drag</b> pan
+        <!-- Layers -->
+        <div class="panel-section">
+          <h2>Layers</h2>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 0">
+            <label class="toggle-wrap" title="Show/hide trees">
+              <input type="checkbox" id="trees-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Trees</span>
+            </label>
+            <label class="toggle-wrap" title="Show/hide flowers">
+              <input type="checkbox" id="flowers-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Flowers</span>
+            </label>
+            <label class="toggle-wrap" title="Show/hide CC spacing rings">
+              <input type="checkbox" id="rings-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Spacing (CC)</span>
+            </label>
+            <label class="toggle-wrap" title="Show/hide background image">
+              <input type="checkbox" id="bg-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Background image</span>
+            </label>
+            <label class="toggle-wrap" title="Show/hide grid">
+              <input type="checkbox" id="grid-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Grid</span>
+            </label>
+          </div>
         </div>
 
         <!-- Running plant totals -->
