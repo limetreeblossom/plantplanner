@@ -13,8 +13,8 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 - **SVG** for the drawing canvas — shapes are objects (not pixels), enabling click-to-select without redrawing
 - **Plain SVG + DOM** for the object model layer — no Fabric.js
 - **SheetJS (xlsx)** for XLS export (added in Phase 3 iteration)
-- **jsPDF** for PDF export (Phase 5)
-- **JSON** save/load, no library needed (Phase 5)
+- **jsPDF** for PDF export (future)
+- **JSON** save/load, no library needed (Phase 6 — partially implemented)
 
 ### Module structure
 - `src/types.ts` — shared TypeScript interfaces (`Plant`, `PlantMarker`, `ShapeData` discriminated union, `LabelEl`)
@@ -26,6 +26,10 @@ A browser-based tool for planning flowerbeds. Users draw shapes representing bed
 - `src/tooltip.ts` — `applyTooltipContent`, `clearTooltipHandlers`
 - `src/export.ts` — `buildExportRows` (XLS row builder)
 - `src/toggles.ts` — `applyRingsToggle`, `applyGridToggle`, `applyBgToggle`
+- `src/legend.ts` — `collectLegendEntries`, `renderLegend` (draggable SVG legend on canvas)
+- `src/saveload.ts` — JSON save/load serialisation and restore helpers
+- `src/customPlants.ts` — custom plant CRUD store with subscriber notifications
+- `src/customPlantForm.ts` — custom plant add/edit form logic
 - `src/main.ts` — DOM wiring, SVG rendering, event handling; imports from all modules above
 
 ### Testing strategy
@@ -204,7 +208,7 @@ _Deferred — revisit after Phase 7 is complete._
 | Output | On-screen list + XLS export + PDF export (Phase 5) |
 | Devices | Desktop with mouse |
 | Framework | Vite (dev/build), Vitest (tests), TypeScript |
-| Testing | Vitest (node + happy-dom); 157 tests; Playwright deferred for E2E |
+| Testing | Vitest (node + happy-dom); 578 tests; Playwright deferred for E2E |
 | Multi-user | Not in scope |
 
 ---
@@ -221,7 +225,11 @@ _Deferred — revisit after Phase 7 is complete._
 | 4b — Per-plant overrides UI | ✅ Complete |
 | 5 — Zoom & Pan | ✅ Complete |
 | 5b — Code Quality & Test Coverage | ✅ Complete |
-| 6 — Save / Load / Export | ⬜ Not started |
+| 5c — Custom Plants | ✅ Complete |
+| 5d — Save / Load (JSON round-trip) | ✅ Complete |
+| 5e — Draggable Legend | ✅ Complete |
+| 5f — UI Revamp | ✅ Complete |
+| 6 — Export PDF | ⬜ Not started |
 | 7 — Polish & UX | ⬜ Not started |
 | 8 — Templates (deferred) | ⏸ Deferred |
 
@@ -242,3 +250,7 @@ _Update this section as phases complete or decisions change._
 - **2026-03-13** — Phase 5 complete. Zoom via scroll wheel toward cursor; pan via middle-click drag or Space+drag. Implemented via SVG viewBox manipulation — canvas content coordinates unchanged.
 - **2026-03-16** — Plant markers now scale proportionally with `sessionScale`. Replaced circle plant icons with traced flower SVG icon.
 - **2026-03-18** — Phase 5b complete. ESLint flat config + Prettier + Husky pre-commit hook (lint-staged → tsc → tests). Extracted pure logic from `main.ts` into `markers.ts`, `chips.ts`, `summary.ts`, `tooltip.ts`, `export.ts`, `toggles.ts`, and extended `geometry.ts` with `computeFillPositions`. 157 tests across 13 files (node + happy-dom). Fixed 10 pre-existing TS errors; added `DOM.Iterable` to tsconfig. Testing strategy documented: Vitest for unit/DOM tests, Playwright deferred for E2E.
+- **2026-03-18** — Phase 5c complete. Custom plant creation, editing, and deletion via a modal form. Custom plants stored in `src/customPlants.ts` with subscriber-based notifications. Editing a custom plant updates all already-placed markers (name, color, spacing) and refreshes the legend and plant summary. Tooltip support for custom plants. Custom plants appear in the "My plants" section of the left panel.
+- **2026-03-18** — Phase 5d complete. Save/load JSON round-trip implemented in `src/saveload.ts`. Designs saved as `.json` file downloads; loaded by file input. Project name field used as filename on save.
+- **2026-03-18** — Phase 5e complete. Draggable SVG legend rendered on canvas. Shows one icon+label row per unique plant in the design. Toggle in View panel; legend follows canvas zoom/pan. Extracted to `src/legend.ts` with full test coverage (18 tests).
+- **2026-03-19** — Phase 5f complete. Full UI revamp: all CSS extracted to `src/style.css` with a `:root` CSS custom properties design system (colours, shadows, radii, spacing, typography). Inter font loaded from Google Fonts. Inline SVG icon sprite (Lucide icons) added — toolbar shape buttons and Save/Load are icon-only; Canvas and Export buttons use icon+label. Search input has inset magnifier icon. Paint bucket icon button for fill mode (F key) added to left panel header. Export button moved into Plant Summary header as a small icon-only button. Left panel reorganised: header "Plants", sections "Search" / "My plants" / "Current plants". Fill mode replaced clumsy toggle with F-key toggle that auto-disarms after one use. 578 tests passing.
