@@ -989,7 +989,26 @@ function makeCustomChip(plant: Plant, index: number): HTMLDivElement {
   delBtn.textContent = '✕';
   delBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    removeCustomPlant(index);
+    if (
+      window.confirm(`Delete ${plant.name}? All markers placed on the canvas will also be removed.`)
+    ) {
+      // Remove every placed marker that belongs to this custom plant.
+      for (const shape of shapes) {
+        const remaining: PlantMarker[] = [];
+        for (const m of shape.plantMarkers) {
+          if (plant.id !== undefined && m.plant.id === plant.id) {
+            // Deselect if this marker was the active selection.
+            if (m === selectedMarker) deselectMarker();
+            m.el.remove();
+          } else {
+            remaining.push(m);
+          }
+        }
+        shape.plantMarkers = remaining;
+      }
+      updateSummary();
+      removeCustomPlant(index);
+    }
   });
   chip.appendChild(delBtn);
 

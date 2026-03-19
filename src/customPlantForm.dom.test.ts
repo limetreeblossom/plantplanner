@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { validateCustomPlantInput } from './customPlantForm';
-import { addCustomPlant, _resetCustomPlants, isNameAvailable } from './customPlants';
+import {
+  addCustomPlant,
+  removeCustomPlant,
+  _resetCustomPlants,
+  isNameAvailable,
+} from './customPlants';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -269,5 +274,55 @@ describe('DOM smoke test — alert fires for each guard', () => {
     const saved = simulateSave('My Unique Plant', '0.5');
     expect(saved).toBe(true);
     expect(window.alert).not.toHaveBeenCalled();
+  });
+});
+
+// ── DOM smoke test — delete confirmation dialogue ─────────────────────────────
+//
+// The delBtn handler lives in main.ts and cannot be imported directly.
+// We verify the contract using the same simulate-the-handler pattern: mirror
+// the real handler logic (window.confirm → removeCustomPlant) and assert that
+// the store state changes only when the user confirms.
+
+describe('DOM smoke test — delete confirmation dialogue', () => {
+  beforeEach(() => {
+    _resetCustomPlants();
+    vi.stubGlobal('confirm', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Mirrors the real delBtn click handler in makeCustomChip. */
+  function simulateDelete(plantName: string, index: number, userConfirms: boolean): void {
+    (window.confirm as ReturnType<typeof vi.fn>).mockReturnValue(userConfirms);
+    if (
+      window.confirm(`Delete ${plantName}? All markers placed on the canvas will also be removed.`)
+    ) {
+      removeCustomPlant(index);
+    }
+  }
+
+  it('shows a confirm dialogue with the plant name', () => {
+    addCustomPlant({ name: 'Lavender', spacing: 0.5, color: '#ccc', isCustom: true });
+    simulateDelete('Lavender', 0, true);
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Delete Lavender? All markers placed on the canvas will also be removed.',
+    );
+  });
+
+  it('removes the plant when the user confirms', () => {
+    addCustomPlant({ name: 'Lavender', spacing: 0.5, color: '#ccc', isCustom: true });
+    // confirm returns true → plant should be deleted
+    simulateDelete('Lavender', 0, true);
+    expect(isNameAvailable('Lavender', undefined)).toBe(true); // name is free again
+  });
+
+  it('does NOT remove the plant when the user cancels', () => {
+    addCustomPlant({ name: 'Lavender', spacing: 0.5, color: '#ccc', isCustom: true });
+    // confirm returns false → plant should remain
+    simulateDelete('Lavender', 0, false);
+    expect(isNameAvailable('Lavender', undefined)).toBe(false); // name still taken
   });
 });
