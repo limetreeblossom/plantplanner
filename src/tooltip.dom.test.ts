@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
+import { applyTooltipContent, buildCustomTooltipHTML, clearTooltipHandlers } from './tooltip';
 import type { Plant } from './types';
 
 function plant(overrides: Partial<Plant> = {}): Plant {
@@ -53,5 +53,61 @@ describe('clearTooltipHandlers', () => {
     clearTooltipHandlers(img);
     expect(img.onload).toBeNull();
     expect(img.onerror).toBeNull();
+  });
+});
+
+// ── buildCustomTooltipHTML ────────────────────────────────────────────────────
+
+describe('buildCustomTooltipHTML', () => {
+  function customPlant(overrides: Partial<Plant> = {}): Plant {
+    return {
+      name: 'My Lavender',
+      spacing: 0.45,
+      color: '#9c27b0',
+      isCustom: true,
+      ...overrides,
+    };
+  }
+
+  it('includes spacing formatted to 2 decimal places', () => {
+    const html = buildCustomTooltipHTML(customPlant({ spacing: 0.3 }));
+    expect(html).toContain('0.30 m');
+  });
+
+  it('does not include the plant colour hex', () => {
+    const html = buildCustomTooltipHTML(customPlant({ color: '#ff5722' }));
+    expect(html).not.toContain('#ff5722');
+  });
+
+  it('does not include a colour swatch span', () => {
+    const html = buildCustomTooltipHTML(customPlant({ color: '#ff5722' }));
+    expect(html).not.toContain('background:#ff5722');
+  });
+
+  it('includes growth_habit capitalised when set', () => {
+    const html = buildCustomTooltipHTML(customPlant({ growth_habit: 'shrub' }));
+    expect(html).toContain('Shrub');
+    expect(html).not.toContain('shrub');
+  });
+
+  it('omits growth_habit line when not set', () => {
+    const html = buildCustomTooltipHTML(customPlant({ growth_habit: undefined }));
+    expect(html).not.toContain('Habit:');
+  });
+
+  it('includes height_cm when set', () => {
+    const html = buildCustomTooltipHTML(customPlant({ height_cm: 120 }));
+    expect(html).toContain('120 cm');
+  });
+
+  it('omits height line when height_cm is not set', () => {
+    const html = buildCustomTooltipHTML(customPlant({ height_cm: undefined }));
+    expect(html).not.toContain('Height:');
+  });
+
+  it('always includes Spacing line', () => {
+    const html = buildCustomTooltipHTML(customPlant());
+    expect(html).toContain('Spacing:');
+    expect(html).not.toContain('Colour:');
   });
 });

@@ -21,7 +21,7 @@ import {
   applyFlowersToggle,
   applyTreesToggle,
 } from './toggles';
-import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
+import { applyTooltipContent, buildCustomTooltipHTML, clearTooltipHandlers } from './tooltip';
 import { validateCustomPlantInput } from './customPlantForm';
 import { buildSaveData, parseSaveData } from './saveload';
 import type { SavedShape, SaveData } from './saveload';
@@ -266,7 +266,7 @@ function hideDimLabel(): void {
 // ── Marker creation ────────────────────────────────────────────────────────
 function createMarkerEl(plant: Plant, x: number, y: number): SVGGElement {
   const g = buildMarkerEl(plant, x, y, sessionScale);
-  if (plant.image_url || plant.scientific_name) {
+  if (plant.isCustom || plant.image_url || plant.scientific_name) {
     g.addEventListener('mouseenter', () => showImgTooltip(plant, g));
     g.addEventListener('mouseleave', hideImgTooltip);
   }
@@ -375,7 +375,7 @@ function updateSummary(): void {
         <span class="summary-swatch" style="background:${plant.color}"></span>${displayName}
       </span>
       <span class="summary-count">${count}</span>`;
-    if (plant.image_url || plant.scientific_name) {
+    if (plant.isCustom || plant.image_url || plant.scientific_name) {
       row.addEventListener('mouseenter', () => showImgTooltip(plant, row));
       row.addEventListener('mouseleave', hideImgTooltip);
     }
@@ -892,20 +892,33 @@ let imgTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
 function showImgTooltip(plant: Plant, chipEl: Element): void {
   if (imgTooltipTimer) clearTimeout(imgTooltipTimer);
+  const rect = chipEl.getBoundingClientRect();
   imgTooltipTimer = setTimeout(() => {
-    applyTooltipContent(plant, {
-      img: imgTipImg,
-      sciEl: imgTipSci,
-      nameEl: imgTipName,
-      metaEl: imgTipMeta,
-    });
+    if (plant.isCustom) {
+      // Custom plants: populate the named child elements directly, no image.
+      clearTooltipHandlers(imgTipImg);
+      imgTipImg.style.display = 'none';
+      imgTipImg.src = '';
+      imgTipSci.textContent = plant.name;
+      imgTipName.textContent = '';
+      imgTipMeta.innerHTML = buildCustomTooltipHTML(plant);
+    } else {
+      applyTooltipContent(plant, {
+        img: imgTipImg,
+        sciEl: imgTipSci,
+        nameEl: imgTipName,
+        metaEl: imgTipMeta,
+      });
+    }
 
     imgTooltip.style.display = 'block';
-    const rect = chipEl.getBoundingClientRect();
     const tipW = 216;
+    const tipH = imgTooltip.offsetHeight;
     const left = rect.right + 8 + tipW > window.innerWidth ? rect.left - tipW - 8 : rect.right + 8;
+    const top =
+      rect.top + tipH > window.innerHeight ? Math.max(0, window.innerHeight - tipH - 8) : rect.top;
     imgTooltip.style.left = left + 'px';
-    imgTooltip.style.top = Math.min(rect.top, window.innerHeight - 220) + 'px';
+    imgTooltip.style.top = top + 'px';
   }, 300);
 }
 
@@ -948,7 +961,7 @@ function makeChip(plant: Plant): HTMLDivElement {
   });
   chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
 
-  if (plant.image_url || plant.scientific_name) {
+  if (plant.isCustom || plant.image_url || plant.scientific_name) {
     chip.addEventListener('mouseenter', () => showImgTooltip(plant, chip));
     chip.addEventListener('mouseleave', hideImgTooltip);
     chip.addEventListener('dragstart', hideImgTooltip);
@@ -1012,11 +1025,15 @@ function makeCustomChip(plant: Plant, index: number): HTMLDivElement {
   chip.appendChild(delBtn);
 
   chip.addEventListener('dragstart', (e: DragEvent) => {
+    hideImgTooltip();
     e.dataTransfer!.setData('plantData', chip.dataset.plantJson!);
     e.dataTransfer!.effectAllowed = 'copy';
     chip.classList.add('dragging');
   });
   chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+
+  chip.addEventListener('mouseenter', () => showImgTooltip(plant, chip));
+  chip.addEventListener('mouseleave', hideImgTooltip);
 
   return chip;
 }

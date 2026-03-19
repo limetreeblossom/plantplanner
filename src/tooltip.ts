@@ -7,6 +7,26 @@ export interface TooltipElements {
   metaEl: HTMLElement;
 }
 
+/**
+ * Builds the meta-line HTML for the custom-plant tooltip (suitable for
+ * setting as `metaEl.innerHTML`).  Pure function — no DOM side-effects.
+ *
+ * Always includes: spacing.
+ * Optionally includes: growth_habit, height_cm.
+ */
+export function buildCustomTooltipHTML(plant: Plant): string {
+  const spacingStr = `${plant.spacing.toFixed(2)} m`;
+
+  const lines: string[] = [];
+  lines.push(`Spacing: ${spacingStr}`);
+  if (plant.growth_habit) {
+    const habit = plant.growth_habit.charAt(0).toUpperCase() + plant.growth_habit.slice(1);
+    lines.push(`Habit: ${habit}`);
+  }
+  if (plant.height_cm) lines.push(`Height: ${plant.height_cm} cm`);
+  return lines.join('<br>');
+}
+
 export function applyTooltipContent(plant: Plant, els: TooltipElements): void {
   els.img.style.display = 'none';
   els.img.onload = () => {
