@@ -1160,6 +1160,17 @@ cpSaveBtn.addEventListener('click', () => {
     if (idx >= 0) {
       // Preserve the stable id when updating
       updateCustomPlant(idx, { ...plantData, id: customPlantEditId });
+      // Propagate changes to already-placed markers (same as applyOverrideToMarkers for Trefle plants)
+      for (const shape of shapes) {
+        for (const m of shape.plantMarkers) {
+          if (m.plant.id !== customPlantEditId) continue;
+          m.plant.name = plantData.name;
+          m.plant.spacing = plantData.spacing;
+          m.plant.color = plantData.color;
+          applyOverrideToEl(m.el, plantData.spacing, plantData.color, sessionScale);
+        }
+      }
+      updateSummary();
     }
   } else {
     addCustomPlant(plantData);
