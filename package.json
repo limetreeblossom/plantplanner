@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "lint": "eslint src scripts",
     "lint:fix": "eslint src scripts --fix",
-    "format": "prettier --write src scripts index.html",
+    "format": "prettier --write src scripts index.html \"src/**/*.css\"",
     "type-check": "tsc --noEmit",
     "fetch-plants": "tsx scripts/fetch-plants.ts",
     "enrich-plants": "tsx scripts/enrich-plants.ts",
@@ -27,6 +27,9 @@
       "prettier --write"
     ],
     "index.html": [
+      "prettier --write"
+    ],
+    "src/**/*.css": [
       "prettier --write"
     ]
   },
