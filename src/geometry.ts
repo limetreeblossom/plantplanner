@@ -154,8 +154,13 @@ export function pointInShape(d: ShapeData, x: number, y: number): boolean {
 }
 
 /**
- * Returns grid positions (px) at which a plant with the given spacing fits
- * inside the shape, excluding positions already occupied by existing markers.
+ * Returns hexagonal (offset-row) positions (px) at which a plant with the
+ * given spacing fits inside the shape, excluding positions already occupied by
+ * existing markers.
+ *
+ * Pattern: every odd row (0-indexed) is offset in X by stepPx / 2, and the
+ * vertical row spacing is stepPx * sqrt(3) / 2 — the standard equilateral-
+ * triangle arrangement used in horticultural practice.
  */
 export function computeFillPositions(
   shape: ShapeData,
@@ -164,11 +169,14 @@ export function computeFillPositions(
   existing: Array<{ x: number; y: number }>,
 ): Array<{ x: number; y: number }> {
   const stepPx = spacing * scale;
+  const rowStepY = stepPx * (Math.sqrt(3) / 2);
   const bb = shapeBoundingBox(shape);
   const positions: Array<{ x: number; y: number }> = [];
 
-  for (let gy = bb.y + stepPx / 2; gy < bb.y + bb.h; gy += stepPx) {
-    for (let gx = bb.x + stepPx / 2; gx < bb.x + bb.w; gx += stepPx) {
+  let rowIndex = 0;
+  for (let gy = bb.y + stepPx / 2; gy < bb.y + bb.h; gy += rowStepY, rowIndex++) {
+    const xOffset = rowIndex % 2 === 1 ? stepPx / 2 : 0;
+    for (let gx = bb.x + stepPx / 2 + xOffset; gx < bb.x + bb.w; gx += stepPx) {
       if (!pointInShape(shape, gx, gy)) continue;
       const occupied = existing.some((m) => {
         const dx = m.x - gx,
