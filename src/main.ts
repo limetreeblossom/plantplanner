@@ -348,7 +348,6 @@ function renderUsedPlants(): void {
     }
   }
   if (seen.size === 0) {
-    section.style.display = 'none';
     el.innerHTML = '';
     return;
   }
@@ -1024,10 +1023,8 @@ function makeCustomChip(plant: Plant, index: number): HTMLDivElement {
 
 function renderCustomPlants(): void {
   const listEl = document.getElementById('custom-plants-list') as HTMLDivElement;
-  const sectionEl = document.getElementById('custom-plants-section') as HTMLDivElement;
   const plants = getCustomPlants();
   listEl.innerHTML = '';
-  sectionEl.style.display = plants.length > 0 ? '' : 'none';
   plants.forEach((plant, idx) => listEl.appendChild(makeCustomChip(plant, idx)));
 }
 
