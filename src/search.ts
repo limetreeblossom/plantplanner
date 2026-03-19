@@ -144,6 +144,18 @@ export function rawToPlant(raw: RawPlant): Plant {
 
 const ALL_PLANTS = rawData as RawPlant[];
 
+/**
+ * Returns true if the given name case-insensitively matches any Trefle plant's
+ * scientific_name or common name field. Use this to prevent custom plants from
+ * shadowing database entries.
+ */
+export function isKnownPlantName(name: string): boolean {
+  const lower = name.trim().toLowerCase();
+  return ALL_PLANTS.some(
+    (p) => p.scientific_name.toLowerCase() === lower || p.name.toLowerCase() === lower,
+  );
+}
+
 export function searchPlants(query: string, limit = 20): Plant[] {
   if (!query.trim()) return [];
   const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

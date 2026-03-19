@@ -1,6 +1,5 @@
-import type { ShapeData } from './types';
+import type { ShapeData, Plant } from './types';
 import type { PlantOverride } from './plantStore';
-import type { Plant } from './types';
 
 export const SAVE_VERSION = 1 as const;
 
@@ -32,6 +31,7 @@ export interface SaveData {
   bgImage: SavedBgImage | null;
   shapes: SavedShape[];
   overrides: Record<string, PlantOverride>;
+  customPlants: Plant[];
 }
 
 // ── Build ─────────────────────────────────────────────────────────────────────
@@ -41,6 +41,7 @@ export function buildSaveData(
   overrides: Record<string, PlantOverride>,
   sessionScale: number,
   bgImage: SavedBgImage | null,
+  customPlants: Plant[] = [],
 ): SaveData {
   const savedShapes: SavedShape[] = shapes.map((d) => {
     const markers: SavedMarker[] = d.plantMarkers.map((m) => ({
@@ -62,6 +63,7 @@ export function buildSaveData(
     bgImage,
     shapes: savedShapes,
     overrides,
+    customPlants,
   };
 }
 
@@ -81,5 +83,9 @@ export function parseSaveData(json: string): SaveData {
     throw new Error(`Unsupported file version: ${String(d['version'])}. Expected ${SAVE_VERSION}.`);
   if (!Array.isArray(d['shapes'])) throw new Error('Invalid file: missing shapes array.');
   if (typeof d['sessionScale'] !== 'number') throw new Error('Invalid file: missing sessionScale.');
+  // customPlants may be absent in saves created before this field was added — default to []
+  if (!Array.isArray(d['customPlants'])) {
+    (d as Record<string, unknown>)['customPlants'] = [];
+  }
   return raw as SaveData;
 }

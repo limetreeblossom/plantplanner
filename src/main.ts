@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { searchPlants } from './search';
+import { searchPlants, isKnownPlantName } from './search';
 import { getOverride, setOverride } from './plantStore';
 import { summaryDisplayName, aggregatePlantCounts } from './summary';
 import {
@@ -22,9 +22,20 @@ import {
   applyTreesToggle,
 } from './toggles';
 import { applyTooltipContent, clearTooltipHandlers } from './tooltip';
+import { validateCustomPlantInput } from './customPlantForm';
 import { buildSaveData, parseSaveData } from './saveload';
 import type { SavedShape, SaveData } from './saveload';
 import { getAllOverrides, restoreOverrides } from './plantStore';
+import {
+  getCustomPlants,
+  addCustomPlant,
+  updateCustomPlant,
+  removeCustomPlant,
+  subscribe as subscribeCustomPlants,
+  getAllCustomPlants,
+  restoreCustomPlants,
+  isNameAvailable,
+} from './customPlants';
 import {
   SCALE,
   CANVAS_W,
@@ -953,6 +964,147 @@ function renderSearchResults(plants: Plant[]): void {
   plants.forEach((plant) => el.appendChild(makeChip(plant)));
 }
 
+// ── Custom plant chips ──────────────────────────────────────────────────────
+
+function makeCustomChip(plant: Plant, index: number): HTMLDivElement {
+  const chip = buildChipEl(plant, plant);
+
+  // Edit button — opens the add/edit form in edit mode
+  const editBtn = document.createElement('button');
+  editBtn.className = 'chip-edit-btn';
+  editBtn.draggable = false;
+  editBtn.title = 'Edit plant';
+  editBtn.textContent = '✎';
+  editBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openCustomPlantForm(plant);
+  });
+  chip.appendChild(editBtn);
+
+  // Delete button — uses index captured at render time (safe: delete is immediate, no deferred lookup)
+  const delBtn = document.createElement('button');
+  delBtn.className = 'chip-edit-btn chip-delete-btn';
+  delBtn.draggable = false;
+  delBtn.title = 'Remove plant';
+  delBtn.textContent = '✕';
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeCustomPlant(index);
+  });
+  chip.appendChild(delBtn);
+
+  chip.addEventListener('dragstart', (e: DragEvent) => {
+    e.dataTransfer!.setData('plantData', chip.dataset.plantJson!);
+    e.dataTransfer!.effectAllowed = 'copy';
+    chip.classList.add('dragging');
+  });
+  chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+
+  return chip;
+}
+
+function renderCustomPlants(): void {
+  const listEl = document.getElementById('custom-plants-list') as HTMLDivElement;
+  const sectionEl = document.getElementById('custom-plants-section') as HTMLDivElement;
+  const plants = getCustomPlants();
+  listEl.innerHTML = '';
+  sectionEl.style.display = plants.length > 0 ? '' : 'none';
+  plants.forEach((plant, idx) => listEl.appendChild(makeCustomChip(plant, idx)));
+}
+
+// Subscribe so list re-renders on any change (add/edit/delete/restore)
+subscribeCustomPlants(renderCustomPlants);
+
+// ── Custom plant add/edit form ──────────────────────────────────────────────
+
+const customPlantDialog = document.getElementById('custom-plant-dialog') as HTMLDivElement;
+const cpNameEl = document.getElementById('cp-name') as HTMLInputElement;
+const cpSpacingEl = document.getElementById('cp-spacing') as HTMLInputElement;
+const cpColorEl = document.getElementById('cp-color') as HTMLInputElement;
+const cpGrowthEl = document.getElementById('cp-growth') as HTMLSelectElement;
+const cpHeightEl = document.getElementById('cp-height') as HTMLInputElement;
+const cpSaveBtn = document.getElementById('cp-save-btn') as HTMLButtonElement;
+const cpCancelBtn = document.getElementById('cp-cancel-btn') as HTMLButtonElement;
+const cpDialogTitle = document.getElementById('cp-dialog-title') as HTMLHeadingElement;
+
+// Id of the custom plant being edited, or null when adding new
+let customPlantEditId: string | null = null;
+
+function openCustomPlantForm(plant?: Plant): void {
+  customPlantEditId = plant?.id ?? null;
+  cpDialogTitle.textContent = plant !== undefined ? 'Edit plant' : 'Add plant';
+  cpNameEl.value = plant?.name ?? '';
+  cpSpacingEl.value = String(plant?.spacing ?? 0.3);
+  cpColorEl.value = toColorInputHex(plant?.color ?? '#90a4ae');
+  cpGrowthEl.value = plant?.growth_habit ?? 'flower';
+  cpHeightEl.value = plant?.height_cm !== undefined ? String(plant.height_cm) : '';
+  customPlantDialog.style.display = 'flex';
+  cpNameEl.focus();
+}
+
+function closeCustomPlantForm(): void {
+  customPlantDialog.style.display = 'none';
+  customPlantEditId = null;
+}
+
+cpSaveBtn.addEventListener('click', () => {
+  const validationError = validateCustomPlantInput(
+    { name: cpNameEl.value, spacingRaw: cpSpacingEl.value },
+    customPlantEditId ?? undefined,
+    isNameAvailable,
+    isKnownPlantName,
+  );
+  if (validationError) {
+    alert(validationError);
+    return;
+  }
+
+  const name = cpNameEl.value.trim();
+  const spacing = parseFloat(cpSpacingEl.value);
+
+  const color = cpColorEl.value;
+  const growth_habit = cpGrowthEl.value;
+  const icon: 'flower' | 'tree' = /tree|shrub/i.test(growth_habit) ? 'tree' : 'flower';
+  const heightRaw = cpHeightEl.value.trim();
+  const height_cm = heightRaw !== '' ? parseFloat(heightRaw) : undefined;
+
+  const plantData: Plant = {
+    name,
+    spacing,
+    color,
+    growth_habit,
+    icon,
+    ...(height_cm !== undefined && !isNaN(height_cm) && { height_cm }),
+    isCustom: true,
+  };
+
+  if (customPlantEditId !== null) {
+    const idx = getAllCustomPlants().findIndex((p) => p.id === customPlantEditId);
+    if (idx >= 0) {
+      // Preserve the stable id when updating
+      updateCustomPlant(idx, { ...plantData, id: customPlantEditId });
+    }
+  } else {
+    addCustomPlant(plantData);
+  }
+  closeCustomPlantForm();
+});
+
+cpCancelBtn.addEventListener('click', closeCustomPlantForm);
+
+document.getElementById('add-custom-plant-btn')!.addEventListener('click', () => {
+  openCustomPlantForm();
+});
+
+// Close dialog on Escape (added with capture so it runs before the existing edit-popover handler)
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.key === 'Escape') closeCustomPlantForm();
+  },
+  true,
+);
+
 // ── Zoom / pan helpers ──────────────────────────────────────────────────────
 function drawRulers(): void {
   const svgW = svgEl.clientWidth;
@@ -1482,7 +1634,13 @@ function saveDesign(): void {
   const bgImageData = bgImageEl
     ? { dataUrl: bgImageEl.getAttribute('href') ?? '', x: bgX, y: bgY }
     : null;
-  const data = buildSaveData(shapes, getAllOverrides(), sessionScale, bgImageData);
+  const data = buildSaveData(
+    shapes,
+    getAllOverrides(),
+    sessionScale,
+    bgImageData,
+    getAllCustomPlants(),
+  );
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1524,6 +1682,8 @@ function clearCanvas(): void {
   vbW = CANVAS_W;
   vbH = svgEl.clientHeight ? vbW * (svgEl.clientHeight / svgEl.clientWidth) : CANVAS_H;
   applyViewBox();
+  // Clear custom plants (will be restored from save data when loading)
+  restoreCustomPlants([]);
 }
 
 function restoreShapeFromSave(saved: SavedShape): ShapeData {
@@ -1618,6 +1778,7 @@ function restoreDesign(data: SaveData): void {
   drawGrid(sessionScale);
 
   restoreOverrides(data.overrides ?? {});
+  restoreCustomPlants(data.customPlants ?? []);
 
   if (data.bgImage) {
     bgImageEl = document.createElementNS(NS, 'image') as SVGImageElement;

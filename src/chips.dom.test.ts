@@ -61,6 +61,25 @@ describe('buildChipEl', () => {
     const petals = chip.querySelectorAll('.chip-petal');
     expect(petals.length).toBeGreaterThan(0);
   });
+
+  it('custom plant shows name (not scientific_name) even when scientific_name is set', () => {
+    const p: Plant = {
+      name: 'My Rose',
+      spacing: 0.5,
+      color: '#f48fb1',
+      scientific_name: 'Rosa canina',
+      isCustom: true,
+    };
+    const chip = buildChipEl(p, p);
+    const nameSpan = chip.querySelector('.chip-name');
+    expect(nameSpan?.textContent).toBe('My Rose');
+  });
+
+  it('non-custom plant with scientific_name still shows scientific_name', () => {
+    const p = flowerPlant({ isCustom: false });
+    const chip = buildChipEl(p, p);
+    expect(chip.querySelector('.chip-name')?.textContent).toBe('Rosa canina');
+  });
 });
 
 // ── makeChipIcon ──────────────────────────────────────────────────────────────

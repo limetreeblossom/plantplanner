@@ -1,6 +1,8 @@
 import type { Plant, ShapeData } from './types';
 
 export function summaryDisplayName(plant: Plant): string {
+  // Custom plants have no scientific name — always show the user-given name
+  if (plant.isCustom) return plant.name;
   return plant.scientific_name ?? plant.name;
 }
 

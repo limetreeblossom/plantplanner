@@ -4,7 +4,8 @@ export function buildExportRows(shapes: ShapeData[]): (string | number)[][] {
   const totals: Record<string, { count: number; spacing: number }> = {};
   for (const d of shapes) {
     for (const m of d.plantMarkers) {
-      const n = m.plant.scientific_name ?? m.plant.name;
+      // Custom plants have no scientific name — use display name only
+      const n = m.plant.isCustom ? m.plant.name : (m.plant.scientific_name ?? m.plant.name);
       if (!totals[n]) totals[n] = { count: 0, spacing: m.plant.spacing };
       totals[n].count++;
     }

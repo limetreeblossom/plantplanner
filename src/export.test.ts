@@ -60,4 +60,16 @@ describe('buildExportRows', () => {
     const roseRow = rows.find((r) => r[0] === 'Rose');
     expect(roseRow?.[2]).toBe(3);
   });
+
+  it('uses plant.name (not scientific_name) for custom plants', () => {
+    const p = plant({ name: 'My Rose', scientific_name: 'Rosa canina', isCustom: true });
+    const rows = buildExportRows([shapeWithMarkers([p])]);
+    expect(rows[1][0]).toBe('My Rose');
+  });
+
+  it('still uses scientific_name for non-custom plants', () => {
+    const p = plant({ name: 'Rose', scientific_name: 'Rosa canina', isCustom: false });
+    const rows = buildExportRows([shapeWithMarkers([p])]);
+    expect(rows[1][0]).toBe('Rosa canina');
+  });
 });

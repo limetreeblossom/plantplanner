@@ -78,6 +78,18 @@ describe('buildSaveData', () => {
     const data = buildSaveData([], {}, 100, null);
     expect(data.bgImage).toBeNull();
   });
+
+  it('includes customPlants when provided', () => {
+    const custom = [{ name: 'My Rose', spacing: 0.5, color: '#f48fb1', isCustom: true as const }];
+    const data = buildSaveData([], {}, 100, null, custom);
+    expect(data.customPlants).toHaveLength(1);
+    expect(data.customPlants[0].name).toBe('My Rose');
+  });
+
+  it('defaults customPlants to empty array when not provided', () => {
+    const data = buildSaveData([], {}, 100, null);
+    expect(data.customPlants).toEqual([]);
+  });
 });
 
 // ── parseSaveData ─────────────────────────────────────────────────────────────
@@ -116,5 +128,17 @@ describe('parseSaveData', () => {
   it('throws when sessionScale is missing', () => {
     const json = JSON.stringify({ version: SAVE_VERSION, shapes: [] });
     expect(() => parseSaveData(json)).toThrow('missing sessionScale');
+  });
+
+  it('defaults customPlants to [] when field is absent (old save compatibility)', () => {
+    const data = parseSaveData(validJson({ customPlants: undefined }));
+    expect(data.customPlants).toEqual([]);
+  });
+
+  it('preserves customPlants when present', () => {
+    const custom = [{ name: 'My Rose', spacing: 0.5, color: '#f00', isCustom: true }];
+    const data = parseSaveData(validJson({ customPlants: custom }));
+    expect(data.customPlants).toHaveLength(1);
+    expect(data.customPlants[0].name).toBe('My Rose');
   });
 });

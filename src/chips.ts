@@ -62,7 +62,8 @@ export function buildChipEl(plant: Plant, effective: Plant): HTMLDivElement {
 
   const nameSpan = document.createElement('span');
   nameSpan.className = 'chip-name';
-  nameSpan.textContent = plant.scientific_name ?? plant.name;
+  // Custom plants have no scientific name — always show the user-given name
+  nameSpan.textContent = plant.isCustom ? plant.name : (plant.scientific_name ?? plant.name);
   chip.appendChild(nameSpan);
 
   return chip;

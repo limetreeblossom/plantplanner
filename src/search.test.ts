@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { searchPlants, bestFlowerColor, computeSpacing, rawToPlant } from './search';
+import {
+  searchPlants,
+  bestFlowerColor,
+  computeSpacing,
+  rawToPlant,
+  isKnownPlantName,
+} from './search';
 
 // ── searchPlants ──────────────────────────────────────────────────────────────
 
@@ -130,5 +136,46 @@ describe('bestFlowerColor', () => {
 
   it('falls back correctly when first choice is unknown', () => {
     expect(bestFlowerColor(['chartreuse', 'blue'])).toBe('#42a5f5');
+  });
+});
+
+// ── isKnownPlantName ──────────────────────────────────────────────────────────
+
+describe('isKnownPlantName', () => {
+  it('returns true for a known scientific_name (exact case)', () => {
+    expect(isKnownPlantName('Urtica dioica')).toBe(true);
+  });
+
+  it('returns true for a known scientific_name (different case)', () => {
+    expect(isKnownPlantName('urtica dioica')).toBe(true);
+    expect(isKnownPlantName('URTICA DIOICA')).toBe(true);
+  });
+
+  it('returns true for a known common name', () => {
+    expect(isKnownPlantName('Common nettle')).toBe(true);
+  });
+
+  it('returns true for a known common name (different case)', () => {
+    expect(isKnownPlantName('common nettle')).toBe(true);
+    expect(isKnownPlantName('COMMON NETTLE')).toBe(true);
+  });
+
+  it('returns false for a name not present in the database', () => {
+    expect(isKnownPlantName('Totally Made Up Plant Xyz123')).toBe(false);
+  });
+
+  it('returns false for an empty string', () => {
+    expect(isKnownPlantName('')).toBe(false);
+  });
+
+  it('trims whitespace before comparing', () => {
+    expect(isKnownPlantName('  Urtica dioica  ')).toBe(true);
+  });
+
+  it('does not match partial names', () => {
+    // "Urtica" alone is not a full scientific_name or common name entry
+    // (it could appear as a genus but not as the stored scientific_name field)
+    // We simply verify it does not produce a false positive for a nonsense fragment.
+    expect(isKnownPlantName('xyz_partial_fragment')).toBe(false);
   });
 });

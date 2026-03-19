@@ -9,6 +9,9 @@ export interface Plant {
   family?: string;
   genus?: string;
   growth_habit?: string;
+  height_cm?: number; // informational only — no effect on SVG rendering
+  isCustom?: boolean; // true for user-created plants
+  id?: string; // stable identifier for custom plants (UUID-like, set at creation)
 }
 
 export interface PlantMarker {

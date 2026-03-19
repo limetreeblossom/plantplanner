@@ -6,7 +6,12 @@ const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
 
 // Buttons with class "tool-btn" but intentionally no data-tool attribute.
 // These have their own dedicated click handlers and must NOT trigger setTool().
-const KNOWN_NON_TOOL_BTNS = new Set(['import-bg-btn', 'save-btn', 'load-btn']);
+const KNOWN_NON_TOOL_BTNS = new Set([
+  'import-bg-btn',
+  'save-btn',
+  'load-btn',
+  'add-custom-plant-btn',
+]);
 
 describe('index.html tool-btn contract', () => {
   it('every .tool-btn element has data-tool OR is in the known non-tool allowlist', () => {

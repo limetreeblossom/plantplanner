@@ -353,6 +353,94 @@
         gap: 4px;
       }
 
+      /* ── Custom plant delete button ── */
+      .chip-delete-btn {
+        color: #e57373;
+      }
+      .chip-delete-btn:hover {
+        color: #c62828;
+      }
+
+      /* ── Custom plant dialog ── */
+      #custom-plant-dialog {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 300;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      #custom-plant-form {
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+        font-size: 0.82rem;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 230px;
+      }
+      #custom-plant-form h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #2e6b18;
+        margin-bottom: 2px;
+      }
+      #custom-plant-form label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        color: #555;
+      }
+      #custom-plant-form input[type='text'],
+      #custom-plant-form input[type='number'],
+      #custom-plant-form select {
+        width: 120px;
+        padding: 3px 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.82rem;
+      }
+      #custom-plant-form input[type='color'] {
+        width: 36px;
+        height: 24px;
+        padding: 1px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .cp-form-btns {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        margin-top: 2px;
+      }
+      .cp-form-btns button {
+        padding: 3px 12px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+      #cp-save-btn {
+        background: #43a047;
+        color: #fff;
+        border-color: #2e7d32;
+      }
+      #cp-save-btn:hover {
+        background: #388e3c;
+      }
+      #cp-cancel-btn {
+        background: #f5f5f5;
+      }
+      #cp-cancel-btn:hover {
+        background: #eeeeee;
+      }
+
       /* ── Plant edit popover ── */
       #plant-edit-popover {
         position: fixed;
@@ -681,6 +769,23 @@
           spellcheck="false"
         />
         <div id="search-results"></div>
+        <div id="custom-plants-section" style="display: none">
+          <div class="panel-divider"></div>
+          <div class="panel-section-label">My plants</div>
+          <div
+            id="custom-plants-list"
+            style="padding: 0 10px 4px; display: flex; flex-direction: column; gap: 4px"
+          ></div>
+        </div>
+        <div style="padding: 6px 10px 8px; flex-shrink: 0">
+          <button
+            id="add-custom-plant-btn"
+            class="tool-btn"
+            style="width: 100%; font-size: 0.78rem"
+          >
+            + Add plant
+          </button>
+        </div>
         <div id="used-plants-section" style="display: none">
           <div class="panel-divider"></div>
           <div class="panel-section-label">In design</div>
@@ -767,6 +872,38 @@
       <div class="plant-tip-name" id="plant-tip-name"></div>
       <div class="plant-tip-meta" id="plant-tip-meta"></div>
     </div>
+    <!-- Custom plant add/edit dialog -->
+    <div id="custom-plant-dialog">
+      <div id="custom-plant-form">
+        <h3 id="cp-dialog-title">Add plant</h3>
+        <label>Name <input type="text" id="cp-name" placeholder="e.g. My Lavender" /></label>
+        <label
+          >Spacing (m)
+          <input type="number" id="cp-spacing" min="0.10" max="3.0" step="0.01" value="0.30"
+        /></label>
+        <label>Color <input type="color" id="cp-color" value="#90a4ae" /></label>
+        <label
+          >Growth habit
+          <select id="cp-growth">
+            <option value="flower">Flower / herb</option>
+            <option value="shrub">Shrub</option>
+            <option value="tree">Tree</option>
+            <option value="grass">Grass</option>
+            <option value="fern">Fern</option>
+            <option value="vine">Vine</option>
+          </select>
+        </label>
+        <label
+          >Height (cm)
+          <input type="number" id="cp-height" min="1" max="5000" step="1" placeholder="optional"
+        /></label>
+        <div class="cp-form-btns">
+          <button id="cp-cancel-btn">Cancel</button>
+          <button id="cp-save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
     <div id="plant-edit-popover">
       <label
         >Spacing (m) <input type="number" id="edit-spacing" min="0.10" max="3.0" step="0.01"

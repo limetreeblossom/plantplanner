@@ -35,6 +35,14 @@ describe('summaryDisplayName', () => {
   it('falls back to name when no scientific_name', () => {
     expect(summaryDisplayName(plant({ scientific_name: undefined }))).toBe('Rose');
   });
+
+  it('returns plant.name for custom plants even when scientific_name is set', () => {
+    expect(
+      summaryDisplayName(
+        plant({ name: 'My Rose', scientific_name: 'Rosa canina', isCustom: true }),
+      ),
+    ).toBe('My Rose');
+  });
 });
 
 describe('aggregatePlantCounts', () => {
