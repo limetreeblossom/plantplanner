@@ -1,5 +1,9 @@
 # Project Instructions
 
+## Roadmap and architecture
+
+Read `PLAN.md` before starting any implementation work. It describes the six-phase roadmap, module architecture, and test strategy. Use it to understand where the current task fits, which phase is active, and what conventions to follow.
+
 ## Before committing to Git
 
 Before committing, assess whether the change affects the UI (HTML, CSS, JS rendering, component logic).
