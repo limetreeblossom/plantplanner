@@ -675,12 +675,44 @@ body.hide-trees #trees-layer {
   flex: 1;
 }
 
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.panel-section-header h2 {
+  margin-bottom: 0 !important;
+}
 .panel-section h2 {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-label);
   margin-bottom: 10px;
+}
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  border: 1px solid var(--color-border-mid);
+  border-radius: var(--radius-sm);
+  background: var(--color-btn-bg);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+}
+.btn-sm:hover {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary-hover-border);
+}
+.btn-sm .btn-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .info-empty {

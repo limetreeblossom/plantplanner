@@ -235,25 +235,15 @@
 
         <!-- Running plant totals -->
         <div class="panel-section" id="summary-section">
-          <h2>Plant Summary</h2>
+          <div class="panel-section-header">
+            <h2>Plant Summary</h2>
+            <button id="export-xls-btn" class="btn-sm" title="Export plant summary to Excel">
+              <svg class="btn-icon" aria-hidden="true"><use href="#icon-save"></use></svg>
+            </button>
+          </div>
           <div id="summary-content">
             <div class="info-empty">No plants placed yet.</div>
           </div>
-          <button
-            id="export-xls-btn"
-            title="Export plant summary to Excel"
-            style="
-              margin-top: 10px;
-              width: 100%;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              gap: 6px;
-            "
-          >
-            <svg class="btn-icon" aria-hidden="true"><use href="#icon-save"></use></svg>
-            Export summary
-          </button>
         </div>
       </div>
     </div>
