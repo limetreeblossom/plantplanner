@@ -17,3 +17,7 @@ export function applyFlowersToggle(body: HTMLElement, checked: boolean): void {
 export function applyTreesToggle(body: HTMLElement, checked: boolean): void {
   body.classList.toggle('hide-trees', !checked);
 }
+
+export function applyLegendToggle(legendGroup: SVGGElement, checked: boolean): void {
+  legendGroup.style.display = checked ? '' : 'none';
+}

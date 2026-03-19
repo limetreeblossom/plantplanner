@@ -816,14 +816,15 @@
             <g id="flowers-layer"></g>
             <g id="trees-layer"></g>
             <g id="overlay-layer"></g>
+            <g id="legend-group"></g>
           </svg>
         </div>
       </div>
 
       <div id="right-panel">
-        <!-- Layers -->
+        <!-- View -->
         <div class="panel-section">
-          <h2>Layers</h2>
+          <h2>View</h2>
           <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 0">
             <label class="toggle-wrap" title="Show/hide trees">
               <input type="checkbox" id="trees-toggle" checked />
@@ -849,6 +850,11 @@
               <input type="checkbox" id="grid-toggle" checked />
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
               <span>Grid</span>
+            </label>
+            <label class="toggle-wrap" title="Show/hide canvas legend">
+              <input type="checkbox" id="legend-check" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span>Legend</span>
             </label>
           </div>
         </div>

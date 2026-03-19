@@ -21,6 +21,7 @@ import {
   applyFlowersToggle,
   applyTreesToggle,
 } from './toggles';
+import { renderLegend } from './legend';
 import { applyTooltipContent, buildCustomTooltipHTML, clearTooltipHandlers } from './tooltip';
 import { validateCustomPlantInput } from './customPlantForm';
 import { buildSaveData, parseSaveData } from './saveload';
@@ -67,6 +68,13 @@ const shapesLayer = document.getElementById('shapes-layer') as unknown as SVGGEl
 const flowersLayer = document.getElementById('flowers-layer') as unknown as SVGGElement;
 const treesLayer = document.getElementById('trees-layer') as unknown as SVGGElement;
 const overlayLayer = document.getElementById('overlay-layer') as unknown as SVGGElement;
+const legendGroup = document.getElementById('legend-group') as unknown as SVGGElement;
+const legendCheck = document.getElementById('legend-check') as HTMLInputElement;
+
+// Legend position in SVG coordinates (persists across re-renders and dragging)
+let legendX = 700;
+let legendY = 430;
+legendGroup.setAttribute('transform', `translate(${legendX}, ${legendY})`);
 const hRuler = document.getElementById('h-ruler') as HTMLCanvasElement;
 const vRuler = document.getElementById('v-ruler') as HTMLCanvasElement;
 const shapeTooltipEl = document.getElementById('shape-tooltip') as HTMLDivElement;
@@ -359,6 +367,7 @@ function renderUsedPlants(): void {
 function updateSummary(): void {
   const totals = aggregatePlantCounts(shapes);
   renderUsedPlants();
+  renderLegend(legendGroup, shapes, legendCheck.checked);
   if (totals.size === 0) {
     summaryContent.innerHTML = '<div class="info-empty">No plants placed yet.</div>';
     return;
@@ -531,6 +540,43 @@ flowersToggle.addEventListener('change', () =>
 
 const treesToggle = document.getElementById('trees-toggle') as HTMLInputElement;
 treesToggle.addEventListener('change', () => applyTreesToggle(document.body, treesToggle.checked));
+
+legendCheck.addEventListener('change', () => {
+  renderLegend(legendGroup, shapes, legendCheck.checked);
+});
+
+// ── Legend drag ───────────────────────────────────────────────────────────────
+let legendDragging = false;
+let legendDragStartMouse = { x: 0, y: 0 };
+let legendDragStartPos = { x: 0, y: 0 };
+
+function clientToSvgCoords(clientX: number, clientY: number): { x: number; y: number } {
+  const pt = svgEl.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  const svgPt = pt.matrixTransform(svgEl.getScreenCTM()!.inverse());
+  return { x: svgPt.x, y: svgPt.y };
+}
+
+legendGroup.addEventListener('mousedown', (e: MouseEvent) => {
+  legendDragging = true;
+  legendDragStartMouse = clientToSvgCoords(e.clientX, e.clientY);
+  legendDragStartPos = { x: legendX, y: legendY };
+  e.stopPropagation();
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', (e: MouseEvent) => {
+  if (!legendDragging) return;
+  const current = clientToSvgCoords(e.clientX, e.clientY);
+  legendX = legendDragStartPos.x + (current.x - legendDragStartMouse.x);
+  legendY = legendDragStartPos.y + (current.y - legendDragStartMouse.y);
+  legendGroup.setAttribute('transform', `translate(${legendX}, ${legendY})`);
+});
+
+window.addEventListener('mouseup', () => {
+  legendDragging = false;
+});
 
 // ── Polygon drawing helpers ────────────────────────────────────────────────
 function clearPolygon(): void {
