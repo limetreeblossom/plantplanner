@@ -98,9 +98,6 @@ let activeEl: SVGElement | null = null;
 let selectedData: ShapeData | null = null;
 let shapes: ShapeData[] = [];
 
-// Fill mode — toggled via toolbar button, resets to false after each successful drop
-let fillMode = false;
-
 // Polygon drawing state
 let polyPts: Array<{ x: number; y: number }> = [];
 let polyVertexDots: SVGCircleElement[] = [];
@@ -152,6 +149,7 @@ let panStartX = 0,
 let panVbStartX = 0,
   panVbStartY = 0; // viewBox origin at pan start
 let spaceDown = false;
+let fillMode = false;
 
 // ── Grid ───────────────────────────────────────────────────────────────────
 function drawGrid(scale = SCALE): void {
@@ -517,12 +515,6 @@ function deleteSelected(): void {
   updateSummary();
 }
 
-// ── Fill mode toggle ───────────────────────────────────────────────────────
-const fillModeCheck = document.getElementById('fill-mode-check') as HTMLInputElement;
-fillModeCheck.addEventListener('change', () => {
-  fillMode = fillModeCheck.checked;
-});
-
 // ── Visibility toggles ─────────────────────────────────────────────────────
 const ringsToggle = document.getElementById('rings-toggle') as HTMLInputElement;
 ringsToggle.addEventListener('change', () => applyRingsToggle(document.body, ringsToggle.checked));
@@ -796,7 +788,13 @@ function pasteMarker(): void {
 
 // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 document.addEventListener('keydown', (e: KeyboardEvent) => {
-  if ((e.target as HTMLElement).tagName === 'INPUT') return;
+  const tag = (e.target as HTMLElement).tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.key === 'f' || e.key === 'F') {
+    fillMode = !fillMode;
+    updateFillModeIndicator();
+    return;
+  }
   if (e.key === ' ') {
     spaceDown = true;
     svgEl.style.cursor = 'grab';
@@ -1274,6 +1272,25 @@ svgEl.addEventListener(
   { passive: false },
 );
 
+// ── Fill mode ──────────────────────────────────────────────────────────────
+function updateFillModeIndicator(): void {
+  const btn = document.getElementById('fill-mode-btn');
+  if (!btn) return;
+  if (fillMode) {
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+}
+
+const fillModeBtn = document.getElementById('fill-mode-btn') as HTMLButtonElement | null;
+if (fillModeBtn) {
+  fillModeBtn.addEventListener('click', () => {
+    fillMode = !fillMode;
+    updateFillModeIndicator();
+  });
+}
+
 // ── Drag-and-drop onto SVG ─────────────────────────────────────────────────
 function svgCoords(e: MouseEvent): { x: number; y: number } {
   const pt = svgEl.createSVGPoint();
@@ -1336,9 +1353,9 @@ svgEl.addEventListener('drop', (e: DragEvent) => {
   if (!targetShape) return;
 
   if (fillMode) {
-    fillMode = false;
-    fillModeCheck.checked = false;
     fillShapeWithPlant(targetShape, plant);
+    fillMode = false;
+    updateFillModeIndicator();
     return;
   }
 
@@ -1749,8 +1766,6 @@ function clearCanvas(): void {
   selectedMarkerShape = null;
   draggingShape = null;
   draggingMarker = null;
-  fillMode = false;
-  fillModeCheck.checked = false;
 
   sessionScale = SCALE;
   scaleInfo.textContent = '';

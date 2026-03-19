@@ -11,6 +11,7 @@ const KNOWN_NON_TOOL_BTNS = new Set([
   'save-btn',
   'load-btn',
   'add-custom-plant-btn',
+  'fill-mode-btn',
 ]);
 
 describe('index.html tool-btn contract', () => {

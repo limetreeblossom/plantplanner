@@ -56,6 +56,7 @@ export function buildChipEl(plant: Plant, effective: Plant): HTMLDivElement {
   const chip = document.createElement('div');
   chip.className = 'plant-chip';
   chip.draggable = true;
+  chip.title = 'Drop to place · Press F to fill shape';
   chip.dataset.plantJson = JSON.stringify(effective);
 
   chip.appendChild(makeChipIcon(effective));
