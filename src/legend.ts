@@ -8,7 +8,7 @@ const ROW_HEIGHT = 24; // px per legend row
 const ICON_SIZE = 18; // icon width/height
 const PAD_X = 8; // horizontal inner padding
 const PAD_Y = 8; // vertical inner padding (top and bottom)
-const BOX_W = 190; // legend box width
+const BOX_W = 230; // legend box width
 const FONT_SIZE = 11; // label font size
 
 // ── Legend entry collector ────────────────────────────────────────────────────
@@ -83,7 +83,8 @@ export function renderLegend(
     label.setAttribute('font-size', String(FONT_SIZE));
     label.setAttribute('fill', '#333');
     label.setAttribute('font-family', 'system-ui, sans-serif');
-    label.textContent = summaryDisplayName(plant);
+    const spacingCm = Math.round(plant.spacing * 100);
+    label.textContent = `${summaryDisplayName(plant)} (c/c: ${spacingCm} cm)`;
     legendGroup.appendChild(label);
   });
 }

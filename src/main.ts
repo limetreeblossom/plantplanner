@@ -895,7 +895,7 @@ function applyOverrideToMarkers(
       applyOverrideToEl(m.el, spacing, color, sessionScale);
     }
   }
-  renderUsedPlants();
+  updateSummary();
 }
 
 editSaveBtn.addEventListener('click', () => {

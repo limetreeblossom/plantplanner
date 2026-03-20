@@ -148,7 +148,7 @@ describe('renderLegend', () => {
     renderLegend(g, [makeShape([plant])], true);
     const texts = Array.from(g.querySelectorAll('text'));
     const labelTexts = texts.map((t) => t.textContent ?? '');
-    expect(labelTexts.some((t) => t === 'Rosa canina')).toBe(true);
+    expect(labelTexts.some((t) => t === 'Rosa canina (c/c: 30 cm)')).toBe(true);
   });
 
   it('shows plant.name for custom plants in the label', () => {
@@ -156,7 +156,7 @@ describe('renderLegend', () => {
     renderLegend(g, [makeShape([plant])], true);
     const texts = Array.from(g.querySelectorAll('text'));
     const labelTexts = texts.map((t) => t.textContent ?? '');
-    expect(labelTexts.some((t) => t === 'My Lavender')).toBe(true);
+    expect(labelTexts.some((t) => t === 'My Lavender (c/c: 30 cm)')).toBe(true);
   });
 
   it('uses plant color for icon petal fill', () => {
