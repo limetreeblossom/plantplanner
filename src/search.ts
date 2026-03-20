@@ -17,6 +17,8 @@ interface EnrichedPlant extends RawPlant {
   spread_cm: number | null;
   row_spacing_cm: number | null;
   growth_habit: string | null;
+  max_height_cm: number | null;
+  avg_height_cm: number | null;
 }
 
 // ── Family fallback colors ────────────────────────────────────────────────────
@@ -125,6 +127,7 @@ export function rawToPlant(raw: RawPlant): Plant {
 
   const isTree = /tree|shrub/i.test(enriched?.growth_habit ?? '');
   const spacing = computeSpacing(enriched?.spread_cm, enriched?.row_spacing_cm, isTree);
+  const heightCm = enriched?.max_height_cm ?? enriched?.avg_height_cm ?? null;
 
   return {
     name: raw.name,
@@ -137,6 +140,7 @@ export function rawToPlant(raw: RawPlant): Plant {
     ...(raw.family && { family: raw.family }),
     ...(raw.genus && { genus: raw.genus }),
     ...(enriched?.growth_habit && { growth_habit: enriched.growth_habit }),
+    ...(heightCm !== null && { height_cm: heightCm }),
   };
 }
 

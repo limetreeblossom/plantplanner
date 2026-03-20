@@ -25,6 +25,18 @@ describe('applyTooltipContent', () => {
     expect(els.sciEl.textContent).toBe('Rosa canina');
   });
 
+  it('includes height_cm in meta when set', () => {
+    const els = makeEls();
+    applyTooltipContent(plant({ height_cm: 90 }), els);
+    expect(els.metaEl.innerHTML).toContain('90 cm');
+  });
+
+  it('omits height line in meta when height_cm is not set', () => {
+    const els = makeEls();
+    applyTooltipContent(plant({ height_cm: undefined }), els);
+    expect(els.metaEl.innerHTML).not.toContain('Height:');
+  });
+
   it('sets nameEl text to plant name', () => {
     const els = makeEls();
     applyTooltipContent(plant({ name: 'Dog Rose' }), els);

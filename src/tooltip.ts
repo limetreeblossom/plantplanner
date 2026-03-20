@@ -43,6 +43,7 @@ export function applyTooltipContent(plant: Plant, els: TooltipElements): void {
   if (plant.family) metaLines.push(`Family: ${plant.family}`);
   if (plant.genus) metaLines.push(`Genus: ${plant.genus}`);
   if (plant.growth_habit) metaLines.push(`Habit: ${plant.growth_habit}`);
+  if (plant.height_cm) metaLines.push(`Height: ${plant.height_cm} cm`);
   els.metaEl.innerHTML = metaLines.join('<br>');
 }
 

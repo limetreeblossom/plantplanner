@@ -1,6 +1,7 @@
 export interface PlantOverride {
   spacing?: number;
   color?: string;
+  height_cm?: number | null; // null = clear any previously stored height
 }
 
 export type StoreResult = { ok: true } | { ok: false; error: string };
@@ -17,6 +18,10 @@ function validateOverride(updates: PlantOverride): StoreResult {
   if (updates.color !== undefined) {
     if (!HEX_RE.test(updates.color))
       return { ok: false, error: 'Color must be a CSS hex string (e.g. #e91e63).' };
+  }
+  if (updates.height_cm !== undefined && updates.height_cm !== null) {
+    if (isNaN(updates.height_cm) || updates.height_cm <= 0)
+      return { ok: false, error: 'Height must be a positive number.' };
   }
   return { ok: true };
 }
@@ -44,7 +49,9 @@ export function setOverride(slug: string, updates: PlantOverride): StoreResult {
   if (!validation.ok) return validation;
 
   const existing = overrides.get(slug) ?? {};
-  overrides.set(slug, { ...existing, ...updates });
+  const next = { ...existing, ...updates };
+  if ('height_cm' in updates && updates.height_cm === null) delete next.height_cm;
+  overrides.set(slug, next);
   notify();
   return { ok: true };
 }

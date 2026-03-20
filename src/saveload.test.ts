@@ -68,6 +68,25 @@ describe('buildSaveData', () => {
     expect(data.overrides['rosa-canina']).toEqual({ spacing: 1.2, color: '#ff0000' });
   });
 
+  it('round-trips height_cm in overrides', () => {
+    const data = buildSaveData(
+      [],
+      { 'rosa-canina': { spacing: 0.5, color: '#f00', height_cm: 75 } },
+      100,
+      null,
+    );
+    expect(data.overrides['rosa-canina'].height_cm).toBe(75);
+  });
+
+  it('round-trips height_cm in plant markers', () => {
+    const shape = rectShape();
+    shape.plantMarkers = [
+      { plant: plant({ height_cm: 90 }), x: 10, y: 20, el: null as unknown as SVGGElement },
+    ];
+    const data = buildSaveData([shape], {}, 100, null);
+    expect(data.shapes[0].markers[0].plant.height_cm).toBe(90);
+  });
+
   it('includes bgImage when provided', () => {
     const bg = { dataUrl: 'data:image/png;base64,abc', x: 10, y: 20 };
     const data = buildSaveData([], {}, 100, bg);

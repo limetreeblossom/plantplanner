@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  getOverride,
-  setOverride,
-  deleteOverride,
-  subscribe,
-  _resetStore,
-} from './plantStore';
+import { getOverride, setOverride, deleteOverride, subscribe, _resetStore } from './plantStore';
 
 beforeEach(() => _resetStore());
 
@@ -39,12 +33,12 @@ describe('setOverride', () => {
 
   it('overwrites a previously set field', () => {
     setOverride('rosa-canina', { spacing: 0.45 });
-    setOverride('rosa-canina', { spacing: 0.60 });
-    expect(getOverride('rosa-canina')!.spacing).toBe(0.60);
+    setOverride('rosa-canina', { spacing: 0.6 });
+    expect(getOverride('rosa-canina')!.spacing).toBe(0.6);
   });
 
   it('accepts spacing at the lower bound (0.10 m)', () => {
-    expect(setOverride('rosa-canina', { spacing: 0.10 }).ok).toBe(true);
+    expect(setOverride('rosa-canina', { spacing: 0.1 }).ok).toBe(true);
   });
 
   it('accepts spacing at the upper bound (3.0 m)', () => {
@@ -93,6 +87,47 @@ describe('setOverride', () => {
     const result = setOverride('rosa-canina', { spacing: 0.45, color: 'blue' });
     expect(result.ok).toBe(false);
     expect(getOverride('rosa-canina')).toBeNull();
+  });
+
+  it('stores a height_cm override', () => {
+    const result = setOverride('rosa-canina', { height_cm: 80 });
+    expect(result.ok).toBe(true);
+    expect(getOverride('rosa-canina')).toMatchObject({ height_cm: 80 });
+  });
+
+  it('rejects height_cm of zero', () => {
+    const result = setOverride('rosa-canina', { height_cm: 0 });
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; error: string }).error).toMatch(/height/i);
+    expect(getOverride('rosa-canina')).toBeNull();
+  });
+
+  it('rejects negative height_cm', () => {
+    const result = setOverride('rosa-canina', { height_cm: -10 });
+    expect(result.ok).toBe(false);
+    expect(getOverride('rosa-canina')).toBeNull();
+  });
+
+  it('accepts fractional height_cm', () => {
+    expect(setOverride('rosa-canina', { height_cm: 0.5 }).ok).toBe(true);
+  });
+
+  it('merges height_cm with existing spacing/color override', () => {
+    setOverride('rosa-canina', { spacing: 0.45, color: '#e91e63' });
+    setOverride('rosa-canina', { height_cm: 120 });
+    expect(getOverride('rosa-canina')).toMatchObject({
+      spacing: 0.45,
+      color: '#e91e63',
+      height_cm: 120,
+    });
+  });
+
+  it('clears height_cm when null is passed', () => {
+    setOverride('rosa-canina', { spacing: 0.45, color: '#e91e63', height_cm: 80 });
+    setOverride('rosa-canina', { height_cm: null });
+    const override = getOverride('rosa-canina')!;
+    expect('height_cm' in override).toBe(false);
+    expect(override.spacing).toBe(0.45); // other fields preserved
   });
 });
 

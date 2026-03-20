@@ -853,6 +853,7 @@ function toColorInputHex(color: string): string {
 const editPopover = document.getElementById('plant-edit-popover') as HTMLDivElement;
 const editSpacingEl = document.getElementById('edit-spacing') as HTMLInputElement;
 const editColorEl = document.getElementById('edit-color') as HTMLInputElement;
+const editHeightEl = document.getElementById('edit-height') as HTMLInputElement;
 const editSaveBtn = document.getElementById('edit-save-btn') as HTMLButtonElement;
 const editCancelBtn = document.getElementById('edit-cancel-btn') as HTMLButtonElement;
 let editTarget: { chip: HTMLDivElement; plant: Plant } | null = null;
@@ -866,6 +867,7 @@ function openEditPopover(plant: Plant, chip: HTMLDivElement): void {
   const override = plant.slug ? getOverride(plant.slug) : null;
   editSpacingEl.value = String(override?.spacing ?? plant.spacing);
   editColorEl.value = toColorInputHex(override?.color ?? plant.color);
+  editHeightEl.value = String(override?.height_cm ?? plant.height_cm ?? '');
   editTarget = { chip, plant };
 
   const rect = chip.getBoundingClientRect();
@@ -876,13 +878,20 @@ function openEditPopover(plant: Plant, chip: HTMLDivElement): void {
   editPopover.style.top = rect.top + 'px';
 }
 
-// Update all placed markers for a slug to reflect new spacing/color.
-function applyOverrideToMarkers(slug: string, spacing: number, color: string): void {
+// Update all placed markers for a slug to reflect new spacing/color/height.
+function applyOverrideToMarkers(
+  slug: string,
+  spacing: number,
+  color: string,
+  height_cm: number | null | undefined,
+): void {
   for (const d of shapes) {
     for (const m of d.plantMarkers) {
       if (m.plant.slug !== slug) continue;
       m.plant.spacing = spacing;
       m.plant.color = color;
+      if (height_cm === null) delete m.plant.height_cm;
+      else if (height_cm !== undefined) m.plant.height_cm = height_cm;
       applyOverrideToEl(m.el, spacing, color, sessionScale);
     }
   }
@@ -896,7 +905,9 @@ editSaveBtn.addEventListener('click', () => {
 
   const spacing = parseFloat(editSpacingEl.value);
   const color = editColorEl.value;
-  const result = setOverride(plant.slug, { spacing, color });
+  const heightRaw = editHeightEl.value.trim();
+  const height_cm = heightRaw !== '' ? parseFloat(heightRaw) : null;
+  const result = setOverride(plant.slug, { spacing, color, height_cm });
   if (!result.ok) {
     alert(result.error);
     return;
@@ -906,10 +917,15 @@ editSaveBtn.addEventListener('click', () => {
   chip
     .querySelectorAll('.chip-petal')
     .forEach((p) => (p as SVGElement).setAttribute('fill', color));
-  chip.dataset.plantJson = JSON.stringify({ ...plant, spacing, color });
+  chip.dataset.plantJson = JSON.stringify({
+    ...plant,
+    spacing,
+    color,
+    ...(height_cm !== null && { height_cm }),
+  });
 
   // Update any markers already on the canvas
-  applyOverrideToMarkers(plant.slug, spacing, color);
+  applyOverrideToMarkers(plant.slug, spacing, color, height_cm);
   closeEditPopover();
 });
 
@@ -981,6 +997,11 @@ function makeChip(plant: Plant): HTMLDivElement {
     ...plant,
     spacing: override?.spacing ?? plant.spacing,
     color: override?.color ?? plant.color,
+    ...(override?.height_cm !== undefined
+      ? { height_cm: override.height_cm }
+      : plant.height_cm !== undefined
+        ? { height_cm: plant.height_cm }
+        : {}),
   };
 
   const chip = buildChipEl(plant, effective);
@@ -1006,7 +1027,7 @@ function makeChip(plant: Plant): HTMLDivElement {
   chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
 
   if (plant.isCustom || plant.image_url || plant.scientific_name) {
-    chip.addEventListener('mouseenter', () => showImgTooltip(plant, chip));
+    chip.addEventListener('mouseenter', () => showImgTooltip(effective, chip));
     chip.addEventListener('mouseleave', hideImgTooltip);
     chip.addEventListener('dragstart', hideImgTooltip);
   }
