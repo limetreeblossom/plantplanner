@@ -997,7 +997,7 @@ function makeChip(plant: Plant): HTMLDivElement {
     ...plant,
     spacing: override?.spacing ?? plant.spacing,
     color: override?.color ?? plant.color,
-    ...(override?.height_cm !== undefined
+    ...(typeof override?.height_cm === 'number'
       ? { height_cm: override.height_cm }
       : plant.height_cm !== undefined
         ? { height_cm: plant.height_cm }
