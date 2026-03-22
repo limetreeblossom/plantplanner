@@ -166,7 +166,7 @@ export function computeFillPositions(
   shape: ShapeData,
   spacing: number,
   scale: number,
-  existing: Array<{ x: number; y: number }>,
+  existing: Array<{ x: number; y: number; spacing?: number }>,
 ): Array<{ x: number; y: number }> {
   const stepPx = spacing * scale;
   const rowStepY = stepPx * (Math.sqrt(3) / 2);
@@ -181,7 +181,8 @@ export function computeFillPositions(
       const occupied = existing.some((m) => {
         const dx = m.x - gx,
           dy = m.y - gy;
-        return Math.sqrt(dx * dx + dy * dy) < stepPx * 0.9;
+        const minDist = Math.max(m.spacing ?? spacing, spacing) * scale;
+        return Math.sqrt(dx * dx + dy * dy) < minDist - 0.5;
       });
       if (occupied) continue;
       positions.push({ x: gx, y: gy });

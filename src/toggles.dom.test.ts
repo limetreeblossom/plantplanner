@@ -6,6 +6,7 @@ import {
   applyBgToggle,
   applyFlowersToggle,
   applyTreesToggle,
+  applyLegendToggle,
 } from './toggles';
 
 // ── I. Visibility toggles ─────────────────────────────────────────────────────
@@ -82,5 +83,22 @@ describe('applyTreesToggle', () => {
     el.classList.add('hide-trees');
     applyTreesToggle(el, true);
     expect(el.classList.contains('hide-trees')).toBe(false);
+  });
+});
+
+describe('applyLegendToggle', () => {
+  it('hides legendGroup when unchecked', () => {
+    const NS = 'http://www.w3.org/2000/svg';
+    const g = document.createElementNS(NS, 'g') as SVGGElement;
+    applyLegendToggle(g, false);
+    expect(g.style.display).toBe('none');
+  });
+
+  it('shows legendGroup when checked', () => {
+    const NS = 'http://www.w3.org/2000/svg';
+    const g = document.createElementNS(NS, 'g') as SVGGElement;
+    g.style.display = 'none';
+    applyLegendToggle(g, true);
+    expect(g.style.display).toBe('');
   });
 });

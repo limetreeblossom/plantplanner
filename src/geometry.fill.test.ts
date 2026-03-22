@@ -164,6 +164,60 @@ describe('computeFillPositions — ellipse', () => {
   });
 });
 
+// ── Mixed-species spacing ─────────────────────────────────────────────────────
+
+describe('computeFillPositions — mixed-species spacing', () => {
+  // Large 600×600 px rect; centre at (300, 300)
+  const largRect = rectShape(0, 0, 600, 600);
+
+  it('Case A: large-spacing existing plant does NOT block small fill plants entirely', () => {
+    // Existing marker at centre with spacing 2.0 m
+    const existing = [{ x: 300, y: 300, spacing: 2.0 }];
+    // Fill plant spacing 0.3 m, scale 100 px/m
+    const positions = computeFillPositions(largRect, 0.3, 100, existing);
+
+    // Small plants still fill the shape — result is NOT empty
+    expect(positions.length).toBeGreaterThan(0);
+
+    // Exclusion zone = max(2.0, 0.3) * 100 - 0.5 = 199.5 px
+    const exclusion = 199.5;
+    for (const { x, y } of positions) {
+      const dx = x - 300,
+        dy = y - 300;
+      expect(Math.sqrt(dx * dx + dy * dy)).toBeGreaterThanOrEqual(exclusion);
+    }
+  });
+
+  it('Case B: small-spacing existing plant does not block large-spacing fill candidates too close', () => {
+    // Existing marker at centre with spacing 0.3 m
+    const existing = [{ x: 300, y: 300, spacing: 0.3 }];
+    // Fill plant spacing 2.0 m, scale 100 px/m
+    const positions = computeFillPositions(largRect, 2.0, 100, existing);
+
+    // Exclusion zone = max(0.3, 2.0) * 100 - 0.5 = 199.5 px
+    const exclusion = 199.5;
+    for (const { x, y } of positions) {
+      const dx = x - 300,
+        dy = y - 300;
+      expect(Math.sqrt(dx * dx + dy * dy)).toBeGreaterThanOrEqual(exclusion);
+    }
+  });
+
+  it('Case C: existing marker with no spacing field falls back to fill-plant spacing', () => {
+    // No spacing field on existing — fallback: max(undefined ?? 0.5, 0.5) * 100 - 0.5 = 49.5 px
+    const existing = [{ x: 300, y: 300 }];
+    const positions = computeFillPositions(largRect, 0.5, 100, existing);
+
+    // Exclusion zone = 0.5 * 100 - 0.5 = 49.5 px
+    const exclusion = 49.5;
+    for (const { x, y } of positions) {
+      const dx = x - 300,
+        dy = y - 300;
+      expect(Math.sqrt(dx * dx + dy * dy)).toBeGreaterThanOrEqual(exclusion);
+    }
+  });
+});
+
 // ── Polygon ───────────────────────────────────────────────────────────────────
 
 describe('computeFillPositions — polygon', () => {

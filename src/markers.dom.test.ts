@@ -58,6 +58,29 @@ describe('buildMarkerEl', () => {
     expect(g.querySelector('.flower-icon')).not.toBeNull();
     expect(g.querySelector('.tree-icon')).toBeNull();
   });
+
+  it('spacing ring radius = spacing * scale (flower: 0.5 * 100 = 50)', () => {
+    const g = buildMarkerEl(flowerPlant({ spacing: 0.5 }), 0, 0, 100);
+    const ring = g.querySelector('.spacing-ring');
+    expect(ring).not.toBeNull();
+    expect(ring!.getAttribute('r')).toBe('50');
+  });
+
+  it('spacing ring radius = spacing * scale (tree: 2.0 * 100 = 200)', () => {
+    const g = buildMarkerEl(treePlant(), 0, 0, 100);
+    const ring = g.querySelector('.spacing-ring');
+    expect(ring).not.toBeNull();
+    expect(ring!.getAttribute('r')).toBe('200');
+  });
+
+  it('sel-circle radius ≈ spacing * scale * 0.225 * 1.3 (dot radius ratio)', () => {
+    // spacing=0.5, scale=100 → ringR=50, dotR=50*0.225=11.25, selR=11.25*1.3=14.625
+    const g = buildMarkerEl(flowerPlant({ spacing: 0.5 }), 0, 0, 100);
+    const sel = g.querySelector('.sel-circle');
+    expect(sel).not.toBeNull();
+    const r = parseFloat(sel!.getAttribute('r') ?? 'NaN');
+    expect(r).toBeCloseTo(14.625, 1);
+  });
 });
 
 describe('showMarkerSelection / hideMarkerSelection', () => {

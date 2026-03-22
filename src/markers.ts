@@ -95,7 +95,7 @@ export function buildMarkerEl(plant: Plant, x: number, y: number, scale: number)
   const ring = document.createElementNS(NS, 'circle') as SVGCircleElement;
   ring.setAttribute('cx', String(x));
   ring.setAttribute('cy', String(y));
-  ring.setAttribute('r', String((plant.spacing / 2) * scale));
+  ring.setAttribute('r', String(plant.spacing * scale));
   ring.setAttribute('fill', 'none');
   ring.setAttribute('stroke', '#2e7d32');
   ring.setAttribute('stroke-width', '1');
@@ -104,7 +104,7 @@ export function buildMarkerEl(plant: Plant, x: number, y: number, scale: number)
   ring.style.pointerEvents = 'none';
   ring.classList.add('spacing-ring');
 
-  const dotR = (plant.spacing / 2) * scale * 0.45;
+  const dotR = plant.spacing * scale * 0.225;
   const iconG =
     plant.icon === 'tree'
       ? createTreeMarker(x, y, dotR)
@@ -138,8 +138,8 @@ export function applyOverrideToEl(
 ): void {
   const ring = el.querySelector<SVGCircleElement>('.spacing-ring');
   if (!ring) return;
-  const ringR = (spacing / 2) * scale;
-  const dotR = ringR * 0.45;
+  const ringR = spacing * scale;
+  const dotR = ringR * 0.225;
   ring.setAttribute('r', String(ringR));
   const cx = parseFloat(ring.getAttribute('cx') ?? '0');
   const cy = parseFloat(ring.getAttribute('cy') ?? '0');

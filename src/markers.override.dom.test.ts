@@ -14,11 +14,11 @@ function treePlant(overrides: Partial<Plant> = {}): Plant {
 // ── F. Plant override ─────────────────────────────────────────────────────────
 
 describe('applyOverrideToEl', () => {
-  it('updates spacing-ring radius to (spacing / 2) * scale', () => {
+  it('updates spacing-ring radius to spacing * scale', () => {
     const el = buildMarkerEl(flowerPlant({ spacing: 0.5 }), 100, 100, 100);
     applyOverrideToEl(el, 1.0, '#f48fb1', 100);
     const ring = el.querySelector<SVGCircleElement>('.spacing-ring');
-    expect(ring?.getAttribute('r')).toBe('50'); // (1.0 / 2) * 100
+    expect(ring?.getAttribute('r')).toBe('100'); // 1.0 * 100
   });
 
   it('updates petal-fill colors on flower markers', () => {

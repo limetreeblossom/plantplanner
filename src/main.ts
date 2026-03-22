@@ -47,7 +47,6 @@ import {
   pointInShape,
   calcScale,
   polygonSelfIntersects,
-  calcFillCount,
   computeFillPositions,
   calcZoomLimits,
   rulerTicks,
@@ -449,8 +448,8 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
   });
-  const ringR = (m.plant.spacing / 2) * sessionScale;
-  const dotR = ringR * 0.45;
+  const ringR = m.plant.spacing * sessionScale;
+  const dotR = ringR * 0.225;
   const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
   if (flowerG) {
     const s = dotR / FLOWER_RADIUS;
@@ -682,8 +681,8 @@ function applyCalibration(): void {
     drawRulers();
     for (const s of shapes) {
       for (const m of s.plantMarkers) {
-        const ringR = (m.plant.spacing / 2) * sessionScale;
-        const dotR = ringR * 0.45;
+        const ringR = m.plant.spacing * sessionScale;
+        const dotR = ringR * 0.225;
         const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
         if (ring) ring.setAttribute('r', String(ringR));
         const cx = parseFloat(ring?.getAttribute('cx') ?? '0');
@@ -1334,15 +1333,11 @@ function svgCoords(e: MouseEvent): { x: number; y: number } {
 
 // Fill a shape with a grid of plant markers, skipping positions already occupied.
 function fillShapeWithPlant(shape: ShapeData, plant: Plant): void {
-  const areaM2 = calcArea(shape, sessionScale);
-  const estimated = calcFillCount(areaM2, shape.plantMarkers.length, plant.spacing);
-
-  if (estimated <= 0) {
-    statusMsg.textContent = `No space left to fill with "${plant.name}".`;
-    return;
-  }
-
-  const existingPositions = shape.plantMarkers.map((m) => ({ x: m.x, y: m.y }));
+  const existingPositions = shape.plantMarkers.map((m) => ({
+    x: m.x,
+    y: m.y,
+    spacing: m.plant.spacing,
+  }));
   const positions = computeFillPositions(shape, plant.spacing, sessionScale, existingPositions);
   let placed = 0;
 
