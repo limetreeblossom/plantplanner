@@ -40,11 +40,18 @@ describe('buildMarkerEl', () => {
     expect(ring!.getAttribute('stroke')).toBe('#2e7d32');
   });
 
-  it('contains a sel-circle hidden by default', () => {
+  it('sel-ring is hidden by default', () => {
     const g = buildMarkerEl(flowerPlant(), 100, 100, SCALE);
-    const sel = g.querySelector('.sel-circle') as HTMLElement | null;
-    expect(sel).not.toBeNull();
-    expect(sel!.style.display).toBe('none');
+    const selRing = g.querySelector('.sel-ring') as SVGCircleElement | null;
+    expect(selRing).not.toBeNull();
+    expect(selRing!.style.display).toBe('none');
+  });
+
+  it('sel-ring has same radius as spacing-ring', () => {
+    const g = buildMarkerEl(flowerPlant({ spacing: 0.5 }), 0, 0, 100);
+    const ring = g.querySelector('.spacing-ring')!;
+    const selRing = g.querySelector('.sel-ring')!;
+    expect(selRing.getAttribute('r')).toBe(ring.getAttribute('r'));
   });
 
   it('tree plant produces icon group with class tree-icon', () => {
@@ -73,30 +80,42 @@ describe('buildMarkerEl', () => {
     expect(ring!.getAttribute('r')).toBe('200');
   });
 
-  it('sel-circle radius ≈ spacing * scale * 0.225 * 1.3 (dot radius ratio)', () => {
-    // spacing=0.5, scale=100 → ringR=50, dotR=50*0.225=11.25, selR=11.25*1.3=14.625
+  it('does not contain a sel-circle element', () => {
     const g = buildMarkerEl(flowerPlant({ spacing: 0.5 }), 0, 0, 100);
-    const sel = g.querySelector('.sel-circle');
-    expect(sel).not.toBeNull();
-    const r = parseFloat(sel!.getAttribute('r') ?? 'NaN');
-    expect(r).toBeCloseTo(14.625, 1);
+    expect(g.querySelector('.sel-circle')).toBeNull();
+  });
+
+  it('sel-ring is dark grey and solid', () => {
+    const g = buildMarkerEl(flowerPlant(), 0, 0, SCALE);
+    const selRing = g.querySelector('.sel-ring') as SVGCircleElement | null;
+    expect(selRing!.getAttribute('stroke')).toBe('#424242');
+    expect(selRing!.getAttribute('stroke-width')).toBe('2');
+    expect(selRing!.getAttribute('fill')).toBe('none');
   });
 });
 
 describe('showMarkerSelection / hideMarkerSelection', () => {
-  it('showMarkerSelection makes sel-circle visible', () => {
+  it('showMarkerSelection makes sel-ring visible', () => {
     const g = buildMarkerEl(flowerPlant(), 100, 100, SCALE);
     showMarkerSelection(g);
-    const sel = g.querySelector<HTMLElement>('.sel-circle');
-    expect(sel!.style.display).toBe('');
+    const selRing = g.querySelector<SVGCircleElement>('.sel-ring');
+    expect(selRing!.style.display).toBe('');
   });
 
-  it('hideMarkerSelection hides sel-circle again', () => {
+  it('hideMarkerSelection hides sel-ring again', () => {
     const g = buildMarkerEl(flowerPlant(), 100, 100, SCALE);
     showMarkerSelection(g);
     hideMarkerSelection(g);
-    const sel = g.querySelector<HTMLElement>('.sel-circle');
-    expect(sel!.style.display).toBe('none');
+    const selRing = g.querySelector<SVGCircleElement>('.sel-ring');
+    expect(selRing!.style.display).toBe('none');
+  });
+
+  it('showMarkerSelection does not change spacing-ring appearance', () => {
+    const g = buildMarkerEl(flowerPlant(), 100, 100, SCALE);
+    showMarkerSelection(g);
+    const ring = g.querySelector<SVGCircleElement>('.spacing-ring');
+    expect(ring!.getAttribute('stroke')).toBe('#2e7d32');
+    expect(ring!.getAttribute('stroke-dasharray')).toBe('4 3');
   });
 });
 

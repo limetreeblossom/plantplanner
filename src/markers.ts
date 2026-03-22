@@ -110,20 +110,20 @@ export function buildMarkerEl(plant: Plant, x: number, y: number, scale: number)
       ? createTreeMarker(x, y, dotR)
       : createFlowerMarker(x, y, dotR, plant.color);
 
-  const selCircle = document.createElementNS(NS, 'circle') as SVGCircleElement;
-  selCircle.setAttribute('cx', String(x));
-  selCircle.setAttribute('cy', String(y));
-  selCircle.setAttribute('r', String(dotR * 1.3));
-  selCircle.setAttribute('fill', 'none');
-  selCircle.setAttribute('stroke', '#ff9800');
-  selCircle.setAttribute('stroke-width', '2.5');
-  selCircle.style.pointerEvents = 'none';
-  selCircle.style.display = 'none';
-  selCircle.classList.add('sel-circle');
+  const selRing = document.createElementNS(NS, 'circle') as SVGCircleElement;
+  selRing.setAttribute('cx', String(x));
+  selRing.setAttribute('cy', String(y));
+  selRing.setAttribute('r', String(plant.spacing * scale));
+  selRing.setAttribute('fill', 'none');
+  selRing.setAttribute('stroke', '#424242');
+  selRing.setAttribute('stroke-width', '2');
+  selRing.style.pointerEvents = 'none';
+  selRing.style.display = 'none';
+  selRing.classList.add('sel-ring');
 
   g.appendChild(ring);
   g.appendChild(iconG);
-  g.appendChild(selCircle);
+  g.appendChild(selRing);
 
   return g;
 }
@@ -141,6 +141,8 @@ export function applyOverrideToEl(
   const ringR = spacing * scale;
   const dotR = ringR * 0.225;
   ring.setAttribute('r', String(ringR));
+  const selRing = el.querySelector<SVGCircleElement>('.sel-ring');
+  if (selRing) selRing.setAttribute('r', String(ringR));
   const cx = parseFloat(ring.getAttribute('cx') ?? '0');
   const cy = parseFloat(ring.getAttribute('cy') ?? '0');
 
@@ -163,11 +165,11 @@ export function applyOverrideToEl(
 // ── Selection helpers ────────────────────────────────────────────────────────
 
 export function showMarkerSelection(el: SVGGElement): void {
-  const sel = el.querySelector<SVGCircleElement>('.sel-circle');
-  if (sel) sel.style.display = '';
+  const selRing = el.querySelector<SVGCircleElement>('.sel-ring');
+  if (selRing) selRing.style.display = '';
 }
 
 export function hideMarkerSelection(el: SVGGElement): void {
-  const sel = el.querySelector<SVGCircleElement>('.sel-circle');
-  if (sel) sel.style.display = 'none';
+  const selRing = el.querySelector<SVGCircleElement>('.sel-ring');
+  if (selRing) selRing.style.display = 'none';
 }

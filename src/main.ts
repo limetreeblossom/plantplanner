@@ -460,8 +460,6 @@ function moveMarkerEl(m: PlantMarker, x: number, y: number): void {
     const s = dotR / TREE_RADIUS;
     treeG.setAttribute('transform', `translate(${x},${y}) scale(${s}) translate(-355.5,-140.3)`);
   }
-  const selCircle = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
-  if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
 }
 
 function moveShapeTo(d: ShapeData, dx: number, dy: number): void {
@@ -685,6 +683,8 @@ function applyCalibration(): void {
         const dotR = ringR * 0.225;
         const ring = m.el.querySelector('.spacing-ring') as SVGCircleElement | null;
         if (ring) ring.setAttribute('r', String(ringR));
+        const selRing = m.el.querySelector('.sel-ring') as SVGCircleElement | null;
+        if (selRing) selRing.setAttribute('r', String(ringR));
         const cx = parseFloat(ring?.getAttribute('cx') ?? '0');
         const cy = parseFloat(ring?.getAttribute('cy') ?? '0');
         const flowerG = m.el.querySelector('.flower-icon') as SVGGElement | null;
@@ -703,8 +703,6 @@ function applyCalibration(): void {
             `translate(${cx},${cy}) scale(${s}) translate(-355.5,-140.3)`,
           );
         }
-        const selCircle = m.el.querySelector('.sel-circle') as SVGCircleElement | null;
-        if (selCircle) selCircle.setAttribute('r', String(dotR * 1.3));
       }
     }
     statusMsg.textContent = `Scale calibrated: 1 m = ${fmt(sessionScale, 1)} px`;
